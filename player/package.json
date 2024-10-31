@@ -13,12 +13,14 @@
   },
   "dependencies": {
     "pinia": "^2.2.4",
+    "video.js": "^8.19.1",
     "vue": "^3.5.12"
   },
   "devDependencies": {
     "@playwright/test": "^1.48.1",
     "@tsconfig/node20": "^20.1.4",
     "@types/node": "^20.17.0",
+    "@types/video.js": "^7.3.58",
     "@vitejs/plugin-vue": "^5.1.4",
     "@vue/tsconfig": "^0.5.1",
     "npm-run-all2": "^7.0.1",
