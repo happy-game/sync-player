@@ -33,6 +33,16 @@ router.post('/create', async (req: Request, res: Response): Promise<void> => {
   }
 });
 
+router.get('/query', async (req: Request, res: Response): Promise<void> => {
+  const { name } = req.query;
+  const room = await getRoomByName(name as string);
+  if (!room) {
+    res.status(404).json({ error: 'Room not found' });
+    return;
+  }
+  res.json(room);
+});
+
 router.post('/join', async (req: Request, res: Response): Promise<void> => {
   const transaction = await sequelize.transaction();
   

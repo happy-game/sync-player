@@ -29,4 +29,14 @@ router.post('/create', async (req: Request, res: Response): Promise<void> => {
   }
 });
 
+router.get('/query', async (req: Request, res: Response): Promise<void> => {
+  const { username } = req.query;
+  const user = await getUserByUsername(username as string);
+  if (!user) {
+    res.status(404).json({ error: 'User not found' });
+    return;
+  }
+  res.json(user);
+});
+
 export default router; 
