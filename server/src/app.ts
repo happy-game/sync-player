@@ -1,5 +1,6 @@
 import express from 'express';
 import { createServer } from 'http';
+import cors from 'cors';
 import { initWebSocket } from './websocket';
 import router from './routes';
 import { initDatabase } from './db/init';
@@ -11,7 +12,7 @@ const server = createServer(app);
 // base middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
+app.use(cors());
 // routes
 app.use('/api', router);
 
