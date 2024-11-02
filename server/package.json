@@ -1,15 +1,18 @@
 {
   "dependencies": {
     "@types/express": "^5.0.0",
-    "@types/node": "^22.8.6",
     "express": "^4.21.1",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.6.3",
+    "sequelize": "^6.37.5",
+    "sqlite3": "^5.1.7",
     "ws": "^8.18.0"
   },
   "devDependencies": {
+    "@types/node": "^22.8.6",
+    "@types/sequelize": "^4.28.20",
     "@types/ws": "^8.5.12",
-    "nodemon": "^3.1.7"
+    "nodemon": "^3.1.7",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.3"
   },
   "scripts": {
     "start": "node dist/app.js",
