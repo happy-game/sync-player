@@ -29,10 +29,6 @@ VideoSource.init({
     type: DataTypes.STRING(255),
     allowNull: false
   },
-  label: {
-    type: DataTypes.STRING(50),
-    allowNull: true
-  },
   createdTime: {
     type: DataTypes.DATE(3),
     allowNull: false,
