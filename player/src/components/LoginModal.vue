@@ -62,7 +62,6 @@ const handleSubmit = async () => {
     await userStore.login(username.value, roomName.value);
     emit('close');
   } catch (error) {
-    console.error('登录失败:', error);
     alert('登录失败，请重试');
   }
 };

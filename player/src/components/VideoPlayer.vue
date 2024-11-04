@@ -9,6 +9,7 @@ import { ref, onMounted } from 'vue';
 import videojs from 'video.js';
 import type Player from 'video.js/dist/types/player';
 import 'video.js/dist/video-js.min.css'
+import logger from '../utils/logger';
 
 // const player = ref<Player | null>(null)
 let player: Player | null = null;
@@ -32,14 +33,14 @@ function initPlayer() {
 		},
 		userActions: {
 			click: function(event: Event) {
-				console.log('click', event);
+				logger.debug('Video clicked', event);
 			}
 		}
 	};
 	player = videojs("videojs-player", options);
   
 	player.on('seeked', () => {
-		console.log('seeked', player.currentTime());
+		logger.info(`Video seeked to ${player.currentTime()}`);
 	});
 
 }

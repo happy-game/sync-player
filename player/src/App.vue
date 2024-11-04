@@ -4,14 +4,19 @@ import VideoPlayer from './components/VideoPlayer.vue';
 import LoginModal from './components/LoginModal.vue';
 import { useUserStore } from './stores/user';
 import Playlist from './components/Playlist.vue';
+import logger from './utils/logger';
 
 const showLoginModal = ref(true);
 const userStore = useUserStore();
 
 onMounted(() => {
   // try to load user from cookie
+  logger.info('正在尝试从cookie加载用户信息...');
   if (userStore.loadFromCookie()) {
+    logger.info('成功从cookie加载用户信息:', userStore.username);
     showLoginModal.value = false;
+  } else {
+    logger.debug('未找到cookie中的用户信息');
   }
 });
 </script>

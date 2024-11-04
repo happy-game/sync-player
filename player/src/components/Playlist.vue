@@ -26,7 +26,7 @@
 import { ref, onMounted, watch } from 'vue';
 import axios from 'axios';
 import { useUserStore } from '../stores/user';
-
+import logger from '../utils/logger';
 const userStore = useUserStore();
 
 interface PlaylistItem {
@@ -41,6 +41,7 @@ const loading = ref(true);
 const error = ref<string | null>(null);
 
 const fetchPlaylist = async () => {
+  logger.info('fetch playlist');
   if (!userStore.username) return;
   
   try {
@@ -50,10 +51,8 @@ const fetchPlaylist = async () => {
     };
     const response = await axios.get('http://localhost:3000/api/playlist/query', { params });
     playlist.value = response.data;
-    console.log('playlist', playlist.value);
   } catch (err) {
     error.value = '获取播放列表失败';
-    console.error('获取播放列表错误:', err);
   } finally {
     loading.value = false;
   }
@@ -62,7 +61,6 @@ const fetchPlaylist = async () => {
 
 watch(() => userStore.username, (newValue) => {
   if (newValue) {
-    console.log('fetch playlist');
     fetchPlaylist();
   }
 });
