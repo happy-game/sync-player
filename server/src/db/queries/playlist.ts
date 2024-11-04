@@ -19,3 +19,17 @@ export async function addItemToPlaylist(roomId: number, title: string, urls: str
 async function createVideoSource(playlistItemId: number, url: string) {
   return VideoSource.create({ playlistItemId, url });
 }
+
+export async function queryPlaylistItems(roomId: number, playlistItemId?: number) {
+  const whereClause: any = { roomId };
+  if (playlistItemId) {
+    whereClause.id = playlistItemId;
+  }
+   const items = await PlaylistItem.findAll({
+    where: whereClause,
+    include: [VideoSource],
+    order: [['orderIndex', 'ASC']]
+  });
+
+  return items;
+}
