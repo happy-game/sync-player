@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue';
 import VideoPlayer from './components/VideoPlayer.vue';
 import LoginModal from './components/LoginModal.vue';
 import { useUserStore } from './stores/user';
+import Playlist from './components/Playlist.vue';
 
 const showLoginModal = ref(true);
 const userStore = useUserStore();
@@ -24,6 +25,7 @@ onMounted(() => {
 
   <main>
     <VideoPlayer />
+    <Playlist />
   </main>
 
   <LoginModal 
@@ -33,4 +35,7 @@ onMounted(() => {
 </template>
 
 <style scoped>
+main {
+  min-height: calc(100vh - 60px);
+}
 </style>
