@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import axios from 'axios';
+import logger from '@/utils/logger';
 
 export const useUserStore = defineStore('user', () => {
   const username = ref('');
@@ -29,17 +30,17 @@ export const useUserStore = defineStore('user', () => {
     ws.value.onmessage = (event) => {
       const data = JSON.parse(event.data);
       if (data.type === 'auth_success') {
-        console.log('WebSocket 认证成功');
+        logger.info('WebSocket 认证成功');
       }
     };
 
     ws.value.onclose = () => {
-      console.log('WebSocket 连接已关闭');
+      logger.info('WebSocket 连接已关闭');
       ws.value = null;
     };
 
     ws.value.onerror = (error) => {
-      console.error('WebSocket 错误:', error);
+      logger.error('WebSocket 错误:', error);
       ws.value = null;
     };
   }
@@ -81,7 +82,7 @@ export const useUserStore = defineStore('user', () => {
       connectWebSocket();
 
     } catch (error) {
-      console.error('登录失败:', error);
+      logger.error('登录失败:', error);
       throw error;
     }
 
@@ -109,7 +110,7 @@ export const useUserStore = defineStore('user', () => {
         connectWebSocket();
         return true;
       } catch (error) {
-        console.error('Failed to parse user info from cookie:', error);
+        logger.error('Failed to parse user info from cookie:', error);
       }
     }
     return false;

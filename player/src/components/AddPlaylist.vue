@@ -23,18 +23,18 @@ const title = ref('');
 const url = ref('');
 
 function addVideo() {
-    logger.info('Add video');
-    if (!title.value || !url.value) {
-        logger.error('Title or url is empty');
-        return;
-    }
-    if (!userStore.roomId) {
-        logger.error('RoomId is empty');
-        return;
-    }
-    playlistStore.addVideo(userStore.roomId, title.value, url.value);
+  logger.info('Add video');
+  if (!title.value || !url.value) {
+    logger.error('Title or url is empty');
+    return;
+  }
+  if (!userStore.roomId) {
+    logger.error('RoomId is empty');
+    return;
+  }
+  playlistStore.addVideo(userStore.roomId, title.value, url.value);
 }
 onMounted(() => {
-    logger.info('AddPlaylist mounted');
+  logger.info('AddPlaylist mounted');
 });
 </script>
