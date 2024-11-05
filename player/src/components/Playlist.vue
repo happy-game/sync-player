@@ -90,7 +90,10 @@ function moveVideo(videoId: number, direction: 'top' | 'up' | 'down') {
   }
 
   const targetVideo = playlistStore.playlist[targetIndex];
-  playlistStore.swapVideos(videoId, targetVideo.id);
+  playlistStore.swapVideos(videoId, targetVideo.id)
+  .then(() => {
+    logger.info('Move video success');
+  })
 }
 
 function clearPlaylist() {

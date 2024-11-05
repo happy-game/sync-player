@@ -68,11 +68,31 @@ export const usePlaylistStore = defineStore('playlist', () => {
     }
   }
 
-  async function swapVideos(fromIndex: number, toIndex: number) {
-    const fromVideo = playlist.value[fromIndex];
-    const toVideo = playlist.value[toIndex];
-    playlist.value[fromIndex] = toVideo;
-    playlist.value[toIndex] = fromVideo;
+  async function swapVideos(fromId: number, toId: number) {
+    const fromIndex = playlist.value.findIndex((video) => video.id === fromId);
+    const toIndex = playlist.value.findIndex((video) => video.id === toId);
+
+    const fromOrderIndex = playlist.value[fromIndex].orderIndex;
+    const toOrderIndex = playlist.value[toIndex].orderIndex;
+    // orderIndexList is an array of { playlistItemId: number, orderIndex: number }
+    const orderIndexList = [
+      { playlistItemId: fromId, orderIndex: toOrderIndex },
+      { playlistItemId: toId, orderIndex: fromOrderIndex }
+    ];
+    try {
+      // update the orderIndex of the two videos in the server
+      await axios.post('/api/playlist/updateOrder', { orderIndexList  });
+      const temp = playlist.value[fromIndex];
+
+      // swap the two videos in local playlist
+      playlist.value[fromIndex] = playlist.value[toIndex];
+      playlist.value[fromIndex].orderIndex = fromOrderIndex;
+      playlist.value[toIndex] = temp;
+      playlist.value[toIndex].orderIndex = toOrderIndex;
+    }
+    catch (error) {
+      logger.error('Failed to swap videos:', error);
+    }
   }
 
   async function clearPlaylist(roomId: number) {

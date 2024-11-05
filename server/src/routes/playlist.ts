@@ -85,12 +85,19 @@ router.post('/updateOrder', async (req: Request, res: Response) => {
     res.status(400).json({ error: 'Invalid request body' });
     return;
   }
-  orderIndexList.forEach((item: any) => {
-    if (typeof item.playlistItemId !== 'number' || typeof item.orderIndex !== 'number') {
-      res.status(400).json({ error: 'Invalid request body' });
-      return;
-    }
-    updatePlaylistItem(item.playlistItemId, undefined, undefined, item.orderIndex); // update orderIndex only
-  });
+  try {
+    orderIndexList.forEach((item: any) => {
+      if (typeof item.playlistItemId !== 'number' || typeof item.orderIndex !== 'number') {
+        res.status(400).json({ error: 'Invalid request body' });
+        return;
+      }
+      updatePlaylistItem(item.playlistItemId, undefined, undefined, item.orderIndex); // update orderIndex only
+    });
+    res.json({ message: 'Order updated' });
+  }
+  catch (error) {
+    logger.error('Failed to update order:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
 });
 export default router;
