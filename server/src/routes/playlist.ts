@@ -11,8 +11,11 @@ router.post('/add', async (req: Request, res: Response) => {
     return;
   }
   try {
-    await addItemToPlaylist(roomId, title, urls);
-    res.json({ message: 'Item added to playlist' });
+    const playlistItemId = await addItemToPlaylist(roomId, title, urls);
+    res.json({ 
+      message: 'Item added to playlist',
+      playlistItemId
+    });
   } catch (error) {
     res.status(500).json({ message: 'Internal server error' });
   }

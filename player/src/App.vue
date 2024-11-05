@@ -2,8 +2,9 @@
 import { ref, onMounted } from 'vue';
 import VideoPlayer from './components/VideoPlayer.vue';
 import LoginModal from './components/LoginModal.vue';
-import { useUserStore } from './stores/user';
 import Playlist from './components/Playlist.vue';
+import AddPlaylist from './components/AddPlaylist.vue';
+import { useUserStore } from './stores/user';
 import logger from './utils/logger';
 
 const showLoginModal = ref(true);
@@ -30,6 +31,7 @@ onMounted(() => {
 
   <main>
     <VideoPlayer />
+    <AddPlaylist />
     <Playlist />
   </main>
 

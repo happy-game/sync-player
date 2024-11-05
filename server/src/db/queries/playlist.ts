@@ -14,6 +14,7 @@ export async function addItemToPlaylist(roomId: number, title: string, urls: str
   for (const url of urlList) {
     await createVideoSource(playlistItemId, url);
   }
+  return playlistItemId;
 }
 
 async function createVideoSource(playlistItemId: number, url: string) {
