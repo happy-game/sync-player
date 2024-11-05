@@ -1,6 +1,7 @@
 <template>
   <div v-if="userStore.username" class="playlist-container p-4">
     <h2 class="text-xl font-bold mb-4">播放列表</h2>
+    <button @click="clearPlaylist()" class="mb-4" v-if="playlistStore.playlist.length > 0">清空播放列表</button>
     <div v-if="loading" class="text-center">
       加载中...
     </div>
@@ -15,6 +16,29 @@
       >
         <div class="flex justify-between items-center">
           <span>{{ item.title }}</span>
+          <!-- Top Up Down Delete -->
+          <button 
+          @click="moveVideo(item.id, 'top')" 
+          :disabled="playlistStore.playlist[0].id === item.id"
+          class="disabled:opacity-50"
+          >
+          置顶
+          </button>
+          <button 
+          @click="moveVideo(item.id, 'up')" 
+          :disabled="playlistStore.playlist[0].id === item.id"
+          class="disabled:opacity-50"
+          >
+          上移
+          </button>
+          <button
+          @click="moveVideo(item.id, 'down')"
+          :disabled="playlistStore.playlist[playlistStore.playlist.length - 1].id === item.id"
+          class="disabled:opacity-50"
+          >
+          下移
+          </button>
+          <button @click="playlistStore.deleteVideo(item.id)">删除</button>
         </div>
       </li>
     </ul>
@@ -52,7 +76,27 @@ const fetchPlaylist = async () => {
   }
 };
 
+function moveVideo(videoId: number, direction: 'top' | 'up' | 'down') {
+  const index = playlistStore.playlist.findIndex((item) => item.id === videoId);
+  if (index === -1) return;
 
+  let targetIndex = index;
+  if (direction === 'top') {
+    targetIndex = 0;
+  } else if (direction === 'up') {
+    targetIndex = Math.max(0, index - 1);
+  } else if (direction === 'down') {
+    targetIndex = Math.min(playlistStore.playlist.length - 1, index + 1);
+  }
+
+  const targetVideo = playlistStore.playlist[targetIndex];
+  playlistStore.swapVideos(videoId, targetVideo.id);
+}
+
+function clearPlaylist() {
+  if (!userStore.roomId) return;
+  playlistStore.clearPlaylist(userStore.roomId);
+}
 watch(() => userStore.username, (newValue) => {
   if (newValue) {
     fetchPlaylist();

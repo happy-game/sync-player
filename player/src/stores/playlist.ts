@@ -58,29 +58,39 @@ export const usePlaylistStore = defineStore('playlist', () => {
         }
     }
 
-    function removeVideo(videoId: number) {
-        const index = playlist.value.findIndex((video) => video.id === videoId)
-        if (index !== -1) {
-            playlist.value.splice(index, 1)
+    async function deleteVideo(videoId: number) {
+        try {
+            await axios.delete('/api/playlist/delete', { data: { playlistItemId: videoId } })
+            playlist.value = playlist.value.filter((video) => video.id !== videoId)
+        }
+        catch (error) {
+            console.error('Failed to delete video:', error)
         }
     }
 
-    function swapVideos(fromIndex: number, toIndex: number) {
+    async function swapVideos(fromIndex: number, toIndex: number) {
         const fromVideo = playlist.value[fromIndex]
         const toVideo = playlist.value[toIndex]
         playlist.value[fromIndex] = toVideo
         playlist.value[toIndex] = fromVideo
     }
 
-    function clearPlaylist() {
-        playlist.value = []
+    async function clearPlaylist(roomId: number) {
+        logger.info('Clearing playlist in roomId', roomId)
+        try {
+            await axios.delete('/api/playlist/clear', { data: { roomId: roomId } })
+            playlist.value = []
+        }
+        catch (error) {
+            console.error('Failed to clear playlist:', error)
+        }
     }
 
     return {
         playlist: computed(() => playlist.value),
         setPlaylist,
         addVideo,
-        removeVideo,
+        deleteVideo,
         swapVideos,
         clearPlaylist
     }
