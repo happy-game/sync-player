@@ -35,12 +35,16 @@ router.post('/create', async (req: Request, res: Response): Promise<void> => {
 
 router.get('/query', async (req: Request, res: Response): Promise<void> => {
   const { name } = req.query;
-  const room = await getRoomByName(name as string);
-  if (!room) {
+  try {
+    const room = await getRoomByName(name as string);
+    if (!room) {
     res.status(404).json({ error: 'Room not found' });
     return;
   }
-  res.json(room);
+    res.json(room);
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 router.post('/join', async (req: Request, res: Response): Promise<void> => {
@@ -107,7 +111,13 @@ router.post('/leave', async (req: Request, res: Response): Promise<void> => {
     }
 
     // remove user from room
-    await removeMemberFromRoom(roomId, userId);
+    try {
+      await removeMemberFromRoom(roomId, userId);
+    } catch (error) {
+      logger.error('Failed to remove member from room:', error);
+      res.status(500).json({ error: 'Internal server error' });
+      return;
+    }
     
     res.json({ message: 'Successfully left the room' });
   } catch (error) {

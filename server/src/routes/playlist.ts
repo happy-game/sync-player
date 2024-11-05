@@ -10,8 +10,12 @@ router.post('/add', async (req: Request, res: Response) => {
     res.status(400).json({ error: 'Invalid request body' });
     return;
   }
-  await addItemToPlaylist(roomId, title, urls);
-  res.json({ message: 'Item added to playlist' });
+  try {
+    await addItemToPlaylist(roomId, title, urls);
+    res.json({ message: 'Item added to playlist' });
+  } catch (error) {
+    res.status(500).json({ message: 'Internal server error' });
+  }
 });
 
 router.get('/query', async (req: Request, res: Response) => {
