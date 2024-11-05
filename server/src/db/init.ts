@@ -24,7 +24,7 @@ export async function initDatabase() {
     logger.info('Success to connect database');
     
     // sync all models to database
-    await sequelize.sync({ force: true }); // note: don't use force: true in production
+    await sequelize.sync({ force: false }); // note: don't use force: true in production
     logger.info('Sync database models');
   } catch (error) {
     logger.error('Failed to init database:', error);

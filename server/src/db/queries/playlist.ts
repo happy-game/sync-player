@@ -34,3 +34,31 @@ export async function queryPlaylistItems(roomId: number, playlistItemId?: number
 
   return items;
 }
+export async function deletePlaylistItem(playlistItemId: number) {
+  await PlaylistItem.destroy({ where: { id: playlistItemId } });
+  await VideoSource.destroy({ where: { playlistItemId } });
+}
+
+export async function clearPlaylist(roomId: number) {
+  const playlistIds = (await PlaylistItem.findAll({ where: { roomId } })).map((item) => item.id);
+  playlistIds.forEach(async (playlistItemId) => {
+    await VideoSource.destroy({ where: { playlistItemId } });
+  });
+  await PlaylistItem.destroy({ where: { roomId } });
+}
+
+export async function updatePlaylistItem(playlistItemId: number, title?: string, urls?: string, orderIndex?: number) {
+  if (!title && !urls && !orderIndex) {
+    return;
+  }
+  if (orderIndex !== undefined) {
+    await PlaylistItem.update({ orderIndex }, { where: { id: playlistItemId } });
+  }
+  if (title) {
+    await PlaylistItem.update({ title }, { where: { id: playlistItemId } });
+  }
+  if (urls) {
+    await VideoSource.destroy({ where: { playlistItemId } }); // delete old video sources
+    createVideoSource(playlistItemId, urls);
+  }
+}

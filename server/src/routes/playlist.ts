@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
-import { addItemToPlaylist, queryPlaylistItems } from '../db/queries/playlist';
+import { addItemToPlaylist, queryPlaylistItems, deletePlaylistItem, clearPlaylist, updatePlaylistItem } from '../db/queries/playlist';
+import logger from '../config/logger';
 
 const router = Router();
 
@@ -45,4 +46,51 @@ router.get('/query', async (req: Request, res: Response) => {
   }
 });
 
+router.delete('/delete', async (req: Request, res: Response) => {
+  const { playlistItemId } = req.body;
+  if (!playlistItemId) {
+    res.status(400).json({ error: 'Invalid request body' });
+    return;
+  }
+
+  try {
+    // delete playlist item and its video sources
+    await deletePlaylistItem(playlistItemId);
+    res.json({ message: 'Item deleted from playlist' });
+  } catch (error) {
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+router.delete('/clear', async (req: Request, res: Response) => {
+  const { roomId } = req.body;
+  if (isNaN(roomId)) {
+    res.status(400).json({ error: 'Invalid roomId' });
+    return;
+  }
+
+  try {
+    // clear playlist items and their video sources
+    await clearPlaylist(roomId);
+    res.json({ message: 'Playlist cleared' });
+  } catch (error) {
+    logger.error('Failed to clear playlist:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+router.post('/updateOrder', async (req: Request, res: Response) => {
+  const { orderIndexList } = req.body;  // array of { playlistItemId: number, orderIndex: number }
+  if (!Array.isArray(orderIndexList)) {
+    res.status(400).json({ error: 'Invalid request body' });
+    return;
+  }
+  orderIndexList.forEach((item: any) => {
+    if (typeof item.playlistItemId !== 'number' || typeof item.orderIndex !== 'number') {
+      res.status(400).json({ error: 'Invalid request body' });
+      return;
+    }
+    updatePlaylistItem(item.playlistItemId, undefined, undefined, item.orderIndex); // update orderIndex only
+  });
+});
 export default router;
