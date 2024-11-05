@@ -9,13 +9,12 @@
     </div>
     <ul v-else class="space-y-2">
       <li 
-        v-for="item in playlist" 
+        v-for="item in playlistStore.playlist" 
         :key="item.id"
         class="p-2 bg-gray-100 rounded hover:bg-gray-200 cursor-pointer"
       >
         <div class="flex justify-between items-center">
           <span>{{ item.title }}</span>
-          <span class="text-sm text-gray-500">{{ item.duration }}</span>
         </div>
       </li>
     </ul>
@@ -26,17 +25,12 @@
 import { ref, onMounted, watch } from 'vue';
 import axios from 'axios';
 import { useUserStore } from '../stores/user';
+import { usePlaylistStore } from '../stores/playlist';
 import logger from '../utils/logger';
+
 const userStore = useUserStore();
+const playlistStore = usePlaylistStore();
 
-interface PlaylistItem {
-  id: number;
-  title: string;
-  duration: string;
-  url: string;
-}
-
-const playlist = ref<PlaylistItem[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
 
@@ -50,7 +44,7 @@ const fetchPlaylist = async () => {
       roomId: userStore.roomId
     };
     const response = await axios.get('http://localhost:3000/api/playlist/query', { params });
-    playlist.value = response.data;
+    playlistStore.setPlaylist(response.data);
   } catch (err) {
     error.value = '获取播放列表失败';
   } finally {
