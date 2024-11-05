@@ -29,7 +29,7 @@ export const usePlaylistStore = defineStore('playlist', () => {
 
     async function addVideo(roomId: number, title:string, urls:string) {
         try {
-            const response = await axios.post('http://localhost:3000/api/playlist/add', {
+            const response = await axios.post('/api/playlist/add', {
                 roomId,
                 title,
                 urls

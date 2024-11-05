@@ -14,7 +14,7 @@ export const useUserStore = defineStore('user', () => {
       ws.value.close();
     }
 
-    ws.value = new WebSocket('ws://localhost:3000');
+    ws.value = new WebSocket(`ws://${location.host}/socket`);
     
     ws.value.onopen = () => {
       if (ws.value && userId.value && roomId.value) {
@@ -50,26 +50,26 @@ export const useUserStore = defineStore('user', () => {
     
     try {
       try {
-        const userResponse = await axios.get(`http://localhost:3000/api/user/query?username=${newUsername}`);
+        const userResponse = await axios.get(`api/user/query?username=${newUsername}`);
         queryUserId = userResponse.data.id;
       } catch (error) {
-        const createUserResponse = await axios.post('http://localhost:3000/api/user/create', {
+        const createUserResponse = await axios.post('api/user/create', {
           username: newUsername,
         });
         queryUserId = createUserResponse.data.id;
       }
 
       try {
-        const roomResponse = await axios.get(`http://localhost:3000/api/room/query?name=${newRoomName}`);
+        const roomResponse = await axios.get(`api/room/query?name=${newRoomName}`);
         queryRoomId = roomResponse.data.id;
       } catch (error) {
-        const createRoomResponse = await axios.post('http://localhost:3000/api/room/create', {
+        const createRoomResponse = await axios.post('api/room/create', {
           name: newRoomName,
         });
         queryRoomId = createRoomResponse.data.id;
       }
 
-      const joinRoomResponse = await axios.post('http://localhost:3000/api/room/join', {
+      const joinRoomResponse = await axios.post('api/room/join', {
         userId: queryUserId,
         roomId: queryRoomId,
       });

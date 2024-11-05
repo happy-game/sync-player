@@ -43,7 +43,7 @@ const fetchPlaylist = async () => {
     const params = {
       roomId: userStore.roomId
     };
-    const response = await axios.get('http://localhost:3000/api/playlist/query', { params });
+    const response = await axios.get('/api/playlist/query', { params });
     playlistStore.setPlaylist(response.data);
   } catch (err) {
     error.value = '获取播放列表失败';
