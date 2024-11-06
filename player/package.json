@@ -15,6 +15,7 @@
     "axios": "^1.7.7",
     "pinia": "^2.2.4",
     "video.js": "^8.19.1",
+    "videojs-playlist": "^5.2.0",
     "vue": "^3.5.12"
   },
   "devDependencies": {
