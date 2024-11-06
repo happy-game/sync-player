@@ -85,7 +85,7 @@ router.post('/join', async (req: Request, res: Response): Promise<void> => {
     const member = await addMemberToRoom(roomId, userId, false, false, transaction);
     
     await transaction.commit();
-    
+    // TODO: set cookie
     res.json({
       roomId: member.roomId,
       userId: member.userId,

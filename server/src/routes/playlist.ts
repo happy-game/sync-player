@@ -5,7 +5,10 @@ import logger from '../config/logger';
 const router = Router();
 
 router.post('/add', async (req: Request, res: Response) => {
-  const { roomId, title, urls } = req.body;
+  const { title, urls } = req.body;
+
+  const cookiesJson = JSON.parse(req.cookies.userInfo);
+  const roomId = cookiesJson.roomId;
   // validate roomId, title, urls
   if (!roomId || !title || !urls) {
     res.status(400).json({ error: 'Invalid request body' });
@@ -23,7 +26,9 @@ router.post('/add', async (req: Request, res: Response) => {
 });
 
 router.get('/query', async (req: Request, res: Response) => {
-  const roomId = parseInt(req.query.roomId as string);
+  // const roomId = parseInt(req.query.roomId as string);
+  const cookiesJson = JSON.parse(req.cookies.userInfo);
+  const roomId = cookiesJson.roomId;
   if (isNaN(roomId)) {
     res.status(400).json({ error: 'Invalid roomId' });
     return;
@@ -63,7 +68,9 @@ router.delete('/delete', async (req: Request, res: Response) => {
 });
 
 router.delete('/clear', async (req: Request, res: Response) => {
-  const { roomId } = req.body;
+  // const { roomId } = req.body;
+  const cookiesJson = JSON.parse(req.cookies.userInfo);
+  const roomId = cookiesJson.roomId;
   if (isNaN(roomId)) {
     res.status(400).json({ error: 'Invalid roomId' });
     return;
