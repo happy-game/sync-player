@@ -44,7 +44,18 @@ export class WebSocketManager {
     }
 
     this.ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
+      try {
+        JSON.parse(event.data);
+      }
+      catch (error) {
+        logger.error('WebSocket 消息解析失败:', event.data);
+        return;
+      }
+      let data = JSON.parse(event.data);
+      // 如果是字符串，再次解析
+      if (typeof data === 'string') {
+        data = JSON.parse(data);
+      }
       logger.debug('收到消息:', data);
       
       // 触发对应类型的所有处理函数

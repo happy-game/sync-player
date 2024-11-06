@@ -15,9 +15,20 @@ import type { PlaylistItem } from '../types/videojs-playlist';
 
 
 import { wsManager } from '@/utils/websocket';
+import { set } from 'video.js/dist/types/tech/middleware';
+import log from 'video.js/dist/types/utils/log';
+
+interface SyncData {
+  time: number;
+  timestamp: number;
+  paused: boolean;
+  videoId: number;
+}
 
 let player: Player | null = null;
-let enable_sync = false;
+let enable_sync = true;
+let please_enable_sync = false;
+const syncThreshold = 1;  
 
 
 const playlist: PlaylistItem[] = [
@@ -65,6 +76,13 @@ function initPlayer() {
 			const index = (player as any).playlist.currentItem();
 			logger.info(`Playing playlist item ${index}: ${playlist[index].title}`);
 		});
+
+    player.on('canplay', () => {
+      if (please_enable_sync) {
+        enable_sync = true;
+        please_enable_sync = false;
+      }
+    });
 		
 		(player as any).playlist.autoadvance(0);
 	}
@@ -102,26 +120,40 @@ async function sendSyncData() {
   }
 }
 
+async function updatePlayer(data: SyncData) {
+  if (!enable_sync) {
+    logger.info('Sync disabled');
+    return;
+  }
+  enable_sync = false;
+  please_enable_sync = true;  
+  const currentTime = player?.currentTime();
+  if (currentTime === undefined) {  // fucking typescript
+    return;
+  }
+  const diff = Math.abs(currentTime - data.time);
+  if (diff > syncThreshold) {
+    logger.info('Updating player time', data.time);
+    player?.currentTime(data.time);
+    // if (data.paused) {
+    //   player?.pause();
+    // } else {
+    //   player?.play();
+    // }
+    player?.play(); // FIXME: always play
+    logger.info('Player time updated');
+  }
+  else {
+    logger.info('Player time is already in sync', currentTime, data.time, diff);
+  }
+}
 async function getSyncData() {
   // const videoId = 1;  // TODO
-  if (enable_sync) {
-    enable_sync = false;
-    setInterval(() => {
-      enable_sync = true;
-    }, 1000 * 3);
-  }
   try {
     const response = await fetch(`/api/sync/query`);
     const result = await response.json();
     logger.info('Sync data received', result);
-    if (result.time) {
-      player?.currentTime(result.time);
-      if (result.paused) {
-        player?.pause();
-      } else {
-        player?.play();
-      }
-    }
+	updatePlayer(result);
   } catch (error) {
     logger.error('Error getting sync data', error);
   }
@@ -137,6 +169,7 @@ onUnmounted(() => {
 });
 
 function handleUpdateTime(data: any) {
-
+  logger.info('Received update time', data);
+	updatePlayer(data);
 }
 </script>
