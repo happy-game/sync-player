@@ -5,7 +5,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import videojs from 'video.js';
 import type Player from 'video.js/dist/types/player';
 import 'video.js/dist/video-js.min.css'
@@ -13,10 +13,12 @@ import logger from '../utils/logger';
 import 'videojs-playlist';
 import type { PlaylistItem } from '../types/videojs-playlist';
 
-// const player = ref<Player | null>(null)
+
+import { wsManager } from '@/utils/websocket';
+
 let player: Player | null = null;
-const default_src = 'http://vjs.zencdn.net/v/oceans.mp4';
 let enable_sync = false;
+
 
 const playlist: PlaylistItem[] = [
 	{
@@ -39,10 +41,6 @@ const playlist: PlaylistItem[] = [
 
 function initPlayer() {
 	const options = {
-		sources: [{
-			src: default_src,
-			type: 'video/mp4'
-		}],
 		controls : true,
 		enableSmoothSeeking: true,
 		playbackRates: [0.5, 1, 1.5, 2],
@@ -131,5 +129,14 @@ async function getSyncData() {
 
 onMounted(() => {
 	initPlayer();
+	wsManager.subscribe('updateTime', handleUpdateTime);
 });
+
+onUnmounted(() => {
+	wsManager.unsubscribe('updateTime', handleUpdateTime);
+});
+
+function handleUpdateTime(data: any) {
+
+}
 </script>

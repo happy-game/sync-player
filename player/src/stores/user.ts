@@ -2,47 +2,16 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import axios from 'axios';
 import logger from '@/utils/logger';
+import { wsManager } from '@/utils/websocket';
 
 export const useUserStore = defineStore('user', () => {
   const username = ref('');
   const roomName = ref('');
   const userId = ref<number | null>(null);
   const roomId = ref<number | null>(null);
-  const ws = ref<WebSocket | null>(null);
 
   function connectWebSocket() {
-    if (ws.value) {
-      ws.value.close();
-    }
-
-    ws.value = new WebSocket(`ws://${location.host}/socket`);
-    
-    ws.value.onopen = () => {
-      if (ws.value && userId.value && roomId.value) {
-        ws.value.send(JSON.stringify({
-          type: 'auth',
-          userId: userId.value.toString(),
-          roomId: roomId.value.toString()
-        }));
-      }
-    };
-
-    ws.value.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === 'auth_success') {
-        logger.info('WebSocket 认证成功');
-      }
-    };
-
-    ws.value.onclose = () => {
-      logger.info('WebSocket 连接已关闭');
-      ws.value = null;
-    };
-
-    ws.value.onerror = (error) => {
-      logger.error('WebSocket 错误:', error);
-      ws.value = null;
-    };
+    wsManager.connect(userId.value, roomId.value);
   }
 
   async function login(newUsername: string, newRoomName: string) {
@@ -121,7 +90,6 @@ export const useUserStore = defineStore('user', () => {
     roomName,
     userId,
     roomId,
-    ws,
     login,
     loadFromCookie,
     connectWebSocket,
