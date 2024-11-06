@@ -16,6 +16,7 @@ import type { PlaylistItem } from '../types/videojs-playlist';
 // const player = ref<Player | null>(null)
 let player: Player | null = null;
 const default_src = 'http://vjs.zencdn.net/v/oceans.mp4';
+let enable_sync = false;
 
 const playlist: PlaylistItem[] = [
 	{
@@ -70,10 +71,64 @@ function initPlayer() {
 		(player as any).playlist.autoadvance(0);
 	}
 
-	player?.on('seeked', () => {
-		logger.info(`Video seeked to ${player?.currentTime()}`);
-	});
+	player?.on('seeked', sendSyncData);
 }
+
+async function sendSyncData() {
+  if (!enable_sync) {
+    return;
+  }
+  const currentTime = player?.currentTime();
+  const timestamp = Date.now();
+  const paused = player?.paused();
+  const videoId = 1;  // TODO
+
+  const data = {
+    time: currentTime,
+    timestamp,
+    paused,
+    videoId
+  };
+  try {
+    const response = await fetch('/api/sync/updateTime', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    });
+    const result = await response.json();
+    logger.info('Sync data sent', result);
+  } catch (error) {
+    logger.error('Error sending sync data', error);
+  }
+}
+
+async function getSyncData() {
+  // const videoId = 1;  // TODO
+  if (enable_sync) {
+    enable_sync = false;
+    setInterval(() => {
+      enable_sync = true;
+    }, 1000 * 3);
+  }
+  try {
+    const response = await fetch(`/api/sync/query`);
+    const result = await response.json();
+    logger.info('Sync data received', result);
+    if (result.time) {
+      player?.currentTime(result.time);
+      if (result.paused) {
+        player?.pause();
+      } else {
+        player?.play();
+      }
+    }
+  } catch (error) {
+    logger.error('Error getting sync data', error);
+  }
+}
+
 onMounted(() => {
 	initPlayer();
 });
