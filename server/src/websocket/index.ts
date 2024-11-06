@@ -33,6 +33,9 @@ export function initWebSocket(server: Server) {
                     }
                     logger.info(`User ${userId} connected to room ${roomId} using websocket`);
                 }
+                else if (data.type === 'ping') {
+                    ws.send(JSON.stringify({ type: 'pong' }));
+                }
             } catch (error) {
                 logger.error('Error parsing message:', error);
             }
@@ -61,4 +64,26 @@ export function getWebSocketServer(): WebSocketServer {
 
 export function getUserIdsInRoom(roomId: number): number[] {
     return Object.keys(connections[roomId] || {}).map(Number);
+}
+
+// Broadcast data to all users in a room, except the excluded users
+export function broadcast(roomId: number, data: any, excludedUserIds: number[] = []) {
+    const roomConnections = connections[roomId] || {};
+    for (const userId in roomConnections) {
+        if (!excludedUserIds.includes(Number(userId))) {
+            const ws = roomConnections[userId];
+            ws.send(JSON.stringify(data));
+        }
+    }
+}
+
+// Send data to include users in a room
+export function sendToUsers(roomId: number, userIds: number[], data: any) {
+    const roomConnections = connections[roomId] || {};
+    for (const userId of userIds) {
+        const ws = roomConnections[userId];
+        if (ws) {
+            ws.send(JSON.stringify(data));
+        }
+    }
 }

@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import logger from '../config/logger';
+import * as Wss from '../websocket';
 
 const router = Router();
 
@@ -23,7 +24,11 @@ router.post('/updateTime', async (req: Request, res: Response) => {
         return;
     }
     roomPlayStatus[roomId] = { paused, time, timestamp, videoId };
-    // TODO: broadcast the updated playStatus to all users in the room using websockets
+    
+    // use websocket to broadcast the play status to all users in the room
+    const data = JSON.stringify({ type: 'updateTime', roomId, userId, paused, time, timestamp, videoId });
+    Wss.broadcast(roomId, data, [userId]);
+
     res.json({ message: 'Play status updated' });
 });
 
