@@ -5,18 +5,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, watch } from 'vue';
 import videojs from 'video.js';
 import type Player from 'video.js/dist/types/player';
 import 'video.js/dist/video-js.min.css'
-import logger from '../utils/logger';
 import 'videojs-playlist';
-import type { PlaylistItem } from '../types/videojs-playlist';
+import type { PlaylistItem } from '@/types/videojs-playlist';
+import { usePlaylistStore } from '@/stores/playlist';
 
-
+import logger from '@/utils/logger';
 import { wsManager } from '@/utils/websocket';
-import { set } from 'video.js/dist/types/tech/middleware';
-import log from 'video.js/dist/types/utils/log';
 
 interface SyncData {
   time: number;
@@ -28,9 +26,9 @@ interface SyncData {
 let player: Player | null = null;
 let enable_sync = true;
 let please_enable_sync = false;
-const syncThreshold = 1;  
+const syncThreshold = 1;
 
-
+const playlistStore = usePlaylistStore();
 const playlist: PlaylistItem[] = [
 	{
 		sources: [{
@@ -158,6 +156,29 @@ async function getSyncData() {
     logger.error('Error getting sync data', error);
   }
 }
+
+watch(() => playlistStore.playlistChanged, (newPlaylist) => {
+  if (player) {
+    logger.info('Playlist changed');
+    // 从 playlistStore 中提取播放列表数据并转换为 videojs-playlist 需要的格式
+    const videojsPlaylist = playlistStore.playlist.map(item => ({
+      sources: item.VideoSources.map(source => ({
+        src: source.url,
+        type: 'video/mp4' // TODO: 从 source.url 中推断
+      })),
+      poster: '', 
+      title: item.title
+    }));
+    // 更新播放器的播放列表
+    (player as any).playlist(videojsPlaylist);
+    
+    // 如果播放列表不为空，开始播放第一个视频
+    if (videojsPlaylist.length > 0) {
+      (player as any).playlist.currentItem(0);
+      player.play();
+    }
+  }
+});
 
 onMounted(() => {
 	initPlayer();

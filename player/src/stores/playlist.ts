@@ -22,9 +22,12 @@ export interface PlaylistItem {
 
 export const usePlaylistStore = defineStore('playlist', () => {
   const playlist = ref<PlaylistItem[]>([]);
+  const playlistLength = computed(() => playlist.value.length);
+  const playlistChanged = ref(false);
 
   function setPlaylist(newPlaylist: PlaylistItem[]) {
     playlist.value = newPlaylist;
+    playlistChanged.value = !playlistChanged.value; // FIXME: a better way to trigger the playlist update
   }
 
   async function addVideo(roomId: number, title:string, urls:string) {
@@ -51,6 +54,7 @@ export const usePlaylistStore = defineStore('playlist', () => {
               lastActiveTime: new Date().toISOString()
           }))
         });
+        playlistChanged.value = !playlistChanged.value; // FIXME: a better way to trigger the playlist update
       }
     }
     catch (error) {
@@ -107,7 +111,9 @@ export const usePlaylistStore = defineStore('playlist', () => {
   }
 
   return {
-    playlist: computed(() => playlist.value),
+    playlist,
+    playlistLength,
+    playlistChanged,
     setPlaylist,
     addVideo,
     deleteVideo,
