@@ -16,7 +16,13 @@
       >
         <div class="flex justify-between items-center">
           <span>{{ item.title }}</span>
-          <!-- Top Up Down Delete -->
+          <!-- Play Top Up Down Delete -->
+          <button 
+          @click="switchVideo(item.id)" 
+          class="disabled:opacity-50"
+          >
+          播放
+          </button>
           <button 
           @click="moveVideo(item.id, 'top')" 
           :disabled="playlistStore.playlist[0].id === item.id"
@@ -100,6 +106,11 @@ function clearPlaylist() {
   if (!userStore.roomId) return;
   playlistStore.clearPlaylist(userStore.roomId);
 }
+
+function switchVideo(videoId: number) {
+  playlistStore.switchVideo(videoId);
+}
+
 watch(() => userStore.username, (newValue) => {
   if (newValue) {
     fetchPlaylist();

@@ -19,11 +19,21 @@ export interface PlaylistItem {
     lastActiveTime: string
   }[]
 }
+export enum PlayStatus {
+  NEW = 'new',
+  PLAYING = 'playing',
+  FINISHED = 'finished'
+}
 
 export const usePlaylistStore = defineStore('playlist', () => {
   const playlist = ref<PlaylistItem[]>([]);
   const playlistLength = computed(() => playlist.value.length);
   const playlistChanged = ref(false);
+  // current playing video id is the id of the playlist item whose playStatus is PLAYING
+  const currentVideoId = computed(() => {
+    const playingItem = playlist.value.find((video) => video.playStatus === PlayStatus.PLAYING);
+    return playingItem ? playingItem.id : -1;
+  });
 
   function setPlaylist(newPlaylist: PlaylistItem[]) {
     playlist.value = newPlaylist;
@@ -110,14 +120,46 @@ export const usePlaylistStore = defineStore('playlist', () => {
     }
   }
 
+  async function switchVideo(videoId: number){
+    try {
+      await axios.post('/api/playlist/switch', { playlistItemId: videoId });
+      if (currentVideoId.value !== -1) {  // 当前有正在播放的视频
+        const currentVideoIndex = playlist.value.findIndex((video) => video.id === currentVideoId.value);
+        playlist.value[currentVideoIndex].playStatus = PlayStatus.FINISHED;
+
+        const newVideoIndex = playlist.value.findIndex((video) => video.id === videoId);
+        playlist.value[newVideoIndex].playStatus = PlayStatus.PLAYING;
+
+        // 把 newVideoIndex 移动到第一个
+        const temp = playlist.value[newVideoIndex];
+        playlist.value.splice(newVideoIndex, 1);
+        playlist.value.unshift(temp);
+      }
+      else {  // 当前没有正在播放的视频
+        const newVideoIndex = playlist.value.findIndex((video) => video.id === videoId);
+        playlist.value[newVideoIndex].playStatus = PlayStatus.PLAYING;
+
+        // 把 newVideoIndex 移动到第一个
+        const temp = playlist.value[newVideoIndex];
+        playlist.value.splice(newVideoIndex, 1);
+        playlist.value.unshift(temp);
+      }
+      playlistChanged.value = !playlistChanged.value; // FIXME: a better way to trigger the playlist update
+    }
+    catch (error) {
+      logger.error('Failed to switch video:', error);
+    }
+  }
   return {
     playlist,
     playlistLength,
     playlistChanged,
+    currentVideoId,
     setPlaylist,
     addVideo,
     deleteVideo,
     swapVideos,
-    clearPlaylist
+    clearPlaylist,
+    switchVideo
   }
 });

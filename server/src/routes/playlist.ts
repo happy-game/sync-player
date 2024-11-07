@@ -119,7 +119,7 @@ router.post('/switch', async (req: Request, res: Response) => {
     return;
   }
 
-  try {
+  try { // FIXME: did't change the play status
     // set all playing items to finished and the new item to playing
     const playingItems = await queryPlaylistItems(roomId, undefined, PlayStatus.PLAYING);
     playingItems.forEach(async (item) => {
@@ -135,6 +135,7 @@ router.post('/switch', async (req: Request, res: Response) => {
     else {
       await createRoomPlayStatus(roomId, false, 0, Date.now(), playlistItemId);
     }
+    // TODO: broadcast the play status to all clients
     res.json({ message: 'Playlist item switched' });
   } catch (error) {
     logger.error('Failed to switch playlist item:', error);

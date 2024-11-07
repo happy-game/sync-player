@@ -29,24 +29,7 @@ let please_enable_sync = false;
 const syncThreshold = 1;
 
 const playlistStore = usePlaylistStore();
-const playlist: PlaylistItem[] = [
-	{
-		sources: [{
-			src: 'http://vjs.zencdn.net/v/oceans.mp4',
-			type: 'video/mp4'
-		}],
-		poster: 'http://vjs.zencdn.net/v/oceans.png',
-		title: 'Oceans'
-	},
-	{
-		sources: [{
-			src: 'http://media.w3.org/2010/05/bunny/movie.mp4',
-			type: 'video/mp4'
-		}],
-		poster: 'http://media.w3.org/2010/05/bunny/poster.png',
-		title: 'Bunny'
-	}
-];
+const playlist: PlaylistItem[] = [];  // 播放列表
 
 function initPlayer() {
 	const options = {
@@ -93,10 +76,10 @@ function initPlayer() {
 	if (player) {
 		(player as any).playlist(playlist);		// TODO: fix this, type error
 		
-		player.on('playlistitem', () => { 
-			const index = (player as any).playlist.currentItem();
-			logger.info(`Playing playlist item ${index}: ${playlist[index].title}`);
-		});
+		// player.on('playlistitem', () => { 
+		// 	const index = (player as any).playlist.currentItem();
+		// 	logger.info(`Playing playlist item ${index}: ${playlist[index].title}`);
+		// });
 
     player.on('canplay', () => {
       if (please_enable_sync) {
@@ -118,7 +101,7 @@ async function sendSyncData() {
   const currentTime = player?.currentTime();
   const timestamp = Date.now();
   const paused = player?.paused();
-  const videoId = 1;  // TODO
+  const videoId = playlistStore.currentVideoId;
 
   const data = {
     time: currentTime,
@@ -168,6 +151,7 @@ async function updatePlayer(data: SyncData) {
     logger.info('Player time is already in sync', currentTime, data.time, diff);
   }
 }
+
 async function getSyncData() {
   // const videoId = 1;  // TODO
   try {
@@ -190,7 +174,8 @@ watch(() => playlistStore.playlistChanged, (newPlaylist) => {
         type: 'video/mp4' // TODO: 从 source.url 中推断
       })),
       poster: '', 
-      title: item.title
+      title: item.title,
+      id: item.id
     }));
     // 更新播放器的播放列表
     (player as any).playlist(videojsPlaylist);
@@ -211,6 +196,7 @@ onMounted(() => {
 
 onUnmounted(() => {
 	wsManager.unsubscribe('updateTime', handleUpdateTime);
+  wsManager.unsubscribe('updatePause', handleUpdatePause);
 });
 
 function handleUpdateTime(data: any) {
