@@ -17,7 +17,7 @@ export function initWebSocket(server: Server) {
     wss.on('connection', (ws: WebSocket) => {
         logger.info('New client connected');
 
-        ws.send("Hello, client!");
+        ws.send(JSON.stringify({ type: 'connected' }));
         ws.on('message', (message: Buffer) => {
             logger.debug('Received message:', message.toString());
             try {

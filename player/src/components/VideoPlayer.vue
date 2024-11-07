@@ -62,6 +62,29 @@ function initPlayer() {
 		userActions: {
 			click: function(event: Event) {
 				logger.debug('Video clicked', event);
+        // 反转播放/暂停状态
+        if (player) { // FIXME: 更优雅的写法
+          if (player.paused()) {
+            player.play();
+          } else {
+            player.pause();
+          }
+        }
+        const paused = player?.paused();
+        const timestamp = Date.now();
+
+        const data = {
+          paused,
+          timestamp
+        };
+        fetch('/api/sync/updatePause', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data)
+        })
+        .then(response => response.json());
 			}
 		}
 	};
@@ -183,6 +206,7 @@ watch(() => playlistStore.playlistChanged, (newPlaylist) => {
 onMounted(() => {
 	initPlayer();
 	wsManager.subscribe('updateTime', handleUpdateTime);
+  wsManager.subscribe('updatePause', handleUpdatePause);
 });
 
 onUnmounted(() => {
@@ -192,5 +216,14 @@ onUnmounted(() => {
 function handleUpdateTime(data: any) {
   logger.info('Received update time', data);
 	updatePlayer(data);
+}
+
+function handleUpdatePause(data: any) {
+  logger.info('Received update pause', data);
+  if (data.paused) {
+    player?.pause();
+  } else {
+    player?.play();
+  }
 }
 </script>
