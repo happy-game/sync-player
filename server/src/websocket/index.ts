@@ -1,6 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { Server } from 'http';
 import logger from '../config/logger';
+import { getRoomPlayStatus, deleteRoomPlayStatus } from '../db/queries/roomPlayStatus';
 
 interface WebSocketMap {
     [roomId: number]: {
@@ -41,12 +42,23 @@ export function initWebSocket(server: Server) {
             }
         });
 
-        ws.on('close', () => {
+        ws.on('close', () => {  // FIXME: a better way to handle this instead searching through all connections
             for (const roomId in connections) {
                 for (const userId in connections[roomId]) {
                     if (connections[roomId][userId] === ws) {
                         delete connections[roomId][userId];
                         logger.info(`User ${userId} disconnected`);
+                        // if the room is empty, delete the room and the play status
+                        if (Object.keys(connections[roomId]).length === 0) {
+                            delete connections[roomId];
+                            deleteRoomPlayStatus(Number(roomId))
+                            .then(() => {
+                                logger.info(`Room ${roomId} deleted`);
+                            })
+                            .catch((error) => {
+                                logger.error(`Failed to delete room ${roomId}:`, error);
+                            });
+                        }
                         break;
                     }
                 }

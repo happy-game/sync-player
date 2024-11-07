@@ -1,16 +1,10 @@
 import { Router, Request, Response } from 'express';
 import logger from '../config/logger';
 import * as Wss from '../websocket';
+import { getRoomPlayStatus, updateRoomPlayStatus, createRoomPlayStatus } from '../db/queries/roomPlayStatus';
 
 const router = Router();
 
-interface PlayStatus {
-    paused: boolean;    // true if the video is paused
-    time: number;    // current time in seconds
-    timestamp: number;  // timestamp of the last user action, in milliseconds
-    videoId: number;    // the video id
-}
-const roomPlayStatus: { [roomId: number]: PlayStatus } = {};
 
 router.post('/updateTime', async (req: Request, res: Response) => {
     // update playStatus in server
@@ -24,7 +18,12 @@ router.post('/updateTime', async (req: Request, res: Response) => {
         return;
     }
     try {
-        roomPlayStatus[roomId] = { paused, time, timestamp, videoId };
+        const playStatus = await getRoomPlayStatus(roomId);
+        if (!playStatus) {
+            await createRoomPlayStatus(roomId, paused, time, timestamp, videoId);
+        } else {
+            await updateRoomPlayStatus(roomId, { paused, time, timestamp, videoId });
+        }
         
         // use websocket to broadcast the play status to all users in the room
         const data = JSON.stringify({ type: 'updateTime', roomId, userId, paused, time, timestamp, videoId });
@@ -46,7 +45,7 @@ router.get('/query', async (req: Request, res: Response) => {
         return;
     }
 
-    const playStatus = roomPlayStatus[roomId];
+    const playStatus = await getRoomPlayStatus(roomId);
     if (!playStatus) {
         res.status(404).json({ error: 'Play status not found' });
         return;
@@ -78,11 +77,12 @@ router.post('/updatePause', async (req: Request, res: Response) => {
         return;
     }
     try {
-        if (!roomPlayStatus[roomId]) {
-            roomPlayStatus[roomId] = { paused, time: 0, timestamp, videoId: 0 };
+        const playStatus = await getRoomPlayStatus(roomId);
+        if (!playStatus) {
+            await createRoomPlayStatus(roomId, paused, 0, timestamp, 0);
+        } else {
+            await updateRoomPlayStatus(roomId, { paused, timestamp });
         }
-        roomPlayStatus[roomId].paused = paused;
-        roomPlayStatus[roomId].timestamp = timestamp;
 
         // use websocket to broadcast the play status to all users in the room
         const data = JSON.stringify({ type: 'updatePause', roomId, userId, paused, timestamp });
