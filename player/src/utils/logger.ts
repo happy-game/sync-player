@@ -7,6 +7,7 @@ export enum LogLevel {
   DEBUG = 3
 }
 
+const currentLogLevel = ref(LogLevel.INFO);
 const LOG_LEVEL_COLORS = {
   [LogLevel.ERROR]: 'color: #ff0000',
   [LogLevel.WARN]: 'color: #ffa500',
@@ -21,8 +22,11 @@ const LOG_LEVEL_LABELS = {
   [LogLevel.DEBUG]: 'DEBUG'
 };
 
-// 默认日志级别
-const currentLogLevel = ref(LogLevel.INFO);
+const VITE_DEBUG = import.meta.env.VITE_DEBUG === 'true';
+if (VITE_DEBUG) {
+  currentLogLevel.value = LogLevel.DEBUG;
+  log(LogLevel.DEBUG, 'Debug mode enabled');
+}
 
 function formatTime() {
   return new Date().toISOString().slice(0, 23).replace('T', ' ');
