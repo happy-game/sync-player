@@ -7,7 +7,7 @@ export async function addItemToPlaylist(roomId: number, title: string, urls: str
   const maxOrderIndex = await PlaylistItem.max('orderIndex', { where: { roomId }, transaction }) as number | null;
   const orderIndex = maxOrderIndex ? maxOrderIndex + 1 : 0;
 
-  const playlistItem = await PlaylistItem.create({ roomId, title, orderIndex, playStatus: PlayStatus.PENDING, createdTime: new Date() }, { transaction });
+  const playlistItem = await PlaylistItem.create({ roomId, title, orderIndex, playStatus: PlayStatus.NEW, createdTime: new Date() }, { transaction });
   const playlistItemId = playlistItem.id;
 
   const urlList = urls.split(',');
@@ -21,12 +21,15 @@ async function createVideoSource(playlistItemId: number, url: string) {
   return VideoSource.create({ playlistItemId, url });
 }
 
-export async function queryPlaylistItems(roomId: number, playlistItemId?: number) {
+export async function queryPlaylistItems(roomId: number, playlistItemId?: number, playStatus?: PlayStatus) {
   const whereClause: any = { roomId };
   if (playlistItemId) {
     whereClause.id = playlistItemId;
   }
-   const items = await PlaylistItem.findAll({
+  if (playStatus) {
+    whereClause.playStatus = playStatus;
+  }
+  const items = await PlaylistItem.findAll({
     where: whereClause,
     include: [VideoSource],
     order: [['orderIndex', 'ASC']]
@@ -61,4 +64,8 @@ export async function updatePlaylistItem(playlistItemId: number, title?: string,
     await VideoSource.destroy({ where: { playlistItemId } }); // delete old video sources
     createVideoSource(playlistItemId, urls);
   }
+}
+
+export async function updatePlayStatus(roomId: number, playStatus: PlayStatus) {
+  await PlaylistItem.update({ playStatus }, { where: { roomId } });
 }

@@ -1,5 +1,7 @@
 import { Router, Request, Response } from 'express';
-import { addItemToPlaylist, queryPlaylistItems, deletePlaylistItem, clearPlaylist, updatePlaylistItem } from '../db/queries/playlist';
+import { addItemToPlaylist, queryPlaylistItems, deletePlaylistItem, clearPlaylist, updatePlaylistItem, updatePlayStatus } from '../db/queries/playlist';
+import { getRoomPlayStatus, updateRoomPlayStatus, createRoomPlayStatus } from '../db/queries/roomPlayStatus';
+import { PlayStatus } from '../models/PlaylistItem';
 import logger from '../config/logger';
 
 const router = Router();
@@ -107,4 +109,37 @@ router.post('/updateOrder', async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+
+router.post('/switch', async (req: Request, res: Response) => {
+  const cookiesJson = JSON.parse(req.cookies.userInfo);
+  const roomId = cookiesJson.roomId;
+  const { playlistItemId } = req.body;
+  if (!playlistItemId) {
+    res.status(400).json({ error: 'Invalid request body' });
+    return;
+  }
+
+  try {
+    // set all playing items to finished and the new item to playing
+    const playingItems = await queryPlaylistItems(roomId, undefined, PlayStatus.PLAYING);
+    playingItems.forEach(async (item) => {
+      await updatePlayStatus(item.id, PlayStatus.FINISHED);
+    });
+    await updatePlayStatus(playlistItemId, PlayStatus.PLAYING);
+
+    // update room play status
+    const playStatus = await getRoomPlayStatus(roomId);
+    if (playStatus) {
+      await updateRoomPlayStatus(roomId, { paused: false, time: 0, timestamp: Date.now(), videoId: playlistItemId });
+    }
+    else {
+      await createRoomPlayStatus(roomId, false, 0, Date.now(), playlistItemId);
+    }
+    res.json({ message: 'Playlist item switched' });
+  } catch (error) {
+    logger.error('Failed to switch playlist item:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 export default router;

@@ -3,9 +3,8 @@ import sequelize from '../db/connection';
 import Room from './Room';
 
 export enum PlayStatus {
-  PENDING = 'pending',
+  NEW = 'new',
   PLAYING = 'playing',
-  PAUSED = 'paused',
   FINISHED = 'finished'
 }
 
@@ -43,7 +42,7 @@ PlaylistItem.init({
   playStatus: {
     type: DataTypes.ENUM(...Object.values(PlayStatus)),
     allowNull: false,
-    defaultValue: PlayStatus.PENDING
+    defaultValue: PlayStatus.NEW
   },
   createdTime: {
     type: DataTypes.DATE(3),
