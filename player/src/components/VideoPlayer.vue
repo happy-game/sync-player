@@ -165,6 +165,12 @@ watch(() => playlistStore.playlistChanged, () => {
         });
         player.play();
       }
+      else {
+        logger.debug('Current video is already playing');
+      }
+    }
+    else {
+      logger.error('Current video item is null');
     }
   }
 });

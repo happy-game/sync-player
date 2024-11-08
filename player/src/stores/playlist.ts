@@ -38,10 +38,20 @@ export const usePlaylistStore = defineStore('playlist', () => {
     return playlist.value.find((video) => video.playStatus === PlayStatus.PLAYING);
   });
 
-  function setPlaylist(newPlaylist: PlaylistItem[]) {
+  async function setPlaylist(newPlaylist: PlaylistItem[]) {
     playlist.value = newPlaylist;
+
+    // try {
+    //   const response = await axios.get('/api/sync/query');
+    //   if (response.status === 200) {
+    //     const currentVideoId = response.data.currentVideoId;
+    //     switchVideo(currentVideoId);
+    //   }
+    // } catch (error) {
+    //   logger.error('Failed to get current playing video:', error);
+    // }
     switchVideo(playlist.value[0].id);  // TODO: use /sync/query to get the current playing video
-    // playlistChanged.value = !playlistChanged.value; // FIXME: a better way to trigger the playlist update
+    playlistChanged.value = !playlistChanged.value; // FIXME: a better way to trigger the playlist update
   }
 
   async function addVideo(roomId: number, title:string, urls:string) {
@@ -68,7 +78,7 @@ export const usePlaylistStore = defineStore('playlist', () => {
               lastActiveTime: new Date().toISOString()
           }))
         });
-        // playlistChanged.value = !playlistChanged.value; // FIXME: a better way to trigger the playlist update
+        playlistChanged.value = !playlistChanged.value; // FIXME: a better way to trigger the playlist update
       }
     }
     catch (error) {

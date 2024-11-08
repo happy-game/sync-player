@@ -3,6 +3,7 @@ import { addItemToPlaylist, queryPlaylistItems, deletePlaylistItem, clearPlaylis
 import { getRoomPlayStatus, updateRoomPlayStatus, createRoomPlayStatus } from '../db/queries/roomPlayStatus';
 import { PlayStatus } from '../models/PlaylistItem';
 import logger from '../config/logger';
+import * as Wss from '../websocket';  
 
 const router = Router();
 
@@ -11,6 +12,7 @@ router.post('/add', async (req: Request, res: Response) => {
 
   const cookiesJson = JSON.parse(req.cookies.userInfo);
   const roomId = cookiesJson.roomId;
+  const userId = cookiesJson.userId;
   // validate roomId, title, urls
   if (!roomId || !title || !urls) {
     res.status(400).json({ error: 'Invalid request body' });
@@ -18,6 +20,10 @@ router.post('/add', async (req: Request, res: Response) => {
   }
   try {
     const playlistItemId = await addItemToPlaylist(roomId, title, urls);
+
+    const data = JSON.stringify({ type: 'updatePlaylist' });
+    Wss.broadcast(roomId, data, [userId]);
+    
     res.json({ 
       message: 'Item added to playlist',
       playlistItemId
@@ -72,6 +78,10 @@ router.get('/query', async (req: Request, res: Response) => {
 
 router.delete('/delete', async (req: Request, res: Response) => {
   const { playlistItemId } = req.body;
+  const cookiesJson = JSON.parse(req.cookies.userInfo);
+  const roomId = cookiesJson.roomId;
+  const userId = cookiesJson.userId;
+
   if (!playlistItemId) {
     res.status(400).json({ error: 'Invalid request body' });
     return;
@@ -80,6 +90,10 @@ router.delete('/delete', async (req: Request, res: Response) => {
   try {
     // delete playlist item and its video sources
     await deletePlaylistItem(playlistItemId);
+
+    const data = JSON.stringify({ type: 'updatePlaylist' });
+    Wss.broadcast(roomId, data, [userId]);
+    
     res.json({ message: 'Item deleted from playlist' });
   } catch (error) {
     res.status(500).json({ message: 'Internal server error' });
@@ -90,6 +104,8 @@ router.delete('/clear', async (req: Request, res: Response) => {
   // const { roomId } = req.body;
   const cookiesJson = JSON.parse(req.cookies.userInfo);
   const roomId = cookiesJson.roomId;
+  const userId = cookiesJson.userId;
+
   if (isNaN(roomId)) {
     res.status(400).json({ error: 'Invalid roomId' });
     return;
@@ -98,6 +114,10 @@ router.delete('/clear', async (req: Request, res: Response) => {
   try {
     // clear playlist items and their video sources
     await clearPlaylist(roomId);
+
+    const data = JSON.stringify({ type: 'updatePlaylist' });
+    Wss.broadcast(roomId, data, [userId]);
+    
     res.json({ message: 'Playlist cleared' });
   } catch (error) {
     logger.error('Failed to clear playlist:', error);
@@ -107,6 +127,10 @@ router.delete('/clear', async (req: Request, res: Response) => {
 
 router.post('/updateOrder', async (req: Request, res: Response) => {
   const { orderIndexList } = req.body;  // array of { playlistItemId: number, orderIndex: number }
+  const cookiesJson = JSON.parse(req.cookies.userInfo);
+  const roomId = cookiesJson.roomId;
+  const userId = cookiesJson.userId;
+
   if (!Array.isArray(orderIndexList)) {
     res.status(400).json({ error: 'Invalid request body' });
     return;
@@ -119,6 +143,11 @@ router.post('/updateOrder', async (req: Request, res: Response) => {
       }
       updatePlaylistItem(item.playlistItemId, undefined, undefined, item.orderIndex); // update orderIndex only
     });
+    
+
+    const data = JSON.stringify({ type: 'updatePlaylist' });
+    Wss.broadcast(roomId, data, [userId]);
+    
     res.json({ message: 'Order updated' });
   }
   catch (error) {
@@ -130,7 +159,10 @@ router.post('/updateOrder', async (req: Request, res: Response) => {
 router.post('/switch', async (req: Request, res: Response) => {
   const cookiesJson = JSON.parse(req.cookies.userInfo);
   const roomId = cookiesJson.roomId;
+  const userId = cookiesJson.userId;
   const { playlistItemId } = req.body;
+
+  let broadcast = true;
   if (!playlistItemId) {
     res.status(400).json({ error: 'Invalid request body' });
     return;
@@ -141,6 +173,9 @@ router.post('/switch', async (req: Request, res: Response) => {
     const playingItems = await queryPlaylistItems(roomId, undefined, PlayStatus.PLAYING);
     playingItems.forEach(async (item) => {
       await updatePlayStatus(item.id, PlayStatus.FINISHED);
+      if (item.id === playlistItemId) { // FIXME: return here?
+        broadcast = false;  // no need to broadcast if the new item is already playing
+      }
     });
     await updatePlayStatus(playlistItemId, PlayStatus.PLAYING);
 
@@ -152,7 +187,12 @@ router.post('/switch', async (req: Request, res: Response) => {
     else {
       await createRoomPlayStatus(roomId, false, 0, Date.now(), playlistItemId);
     }
-    // TODO: broadcast the play status to all clients
+
+    const data = JSON.stringify({ type: 'updatePlaylist' });
+    if (broadcast){
+      Wss.broadcast(roomId, data, [userId]);
+    }
+    
     res.json({ message: 'Playlist item switched' });
   } catch (error) {
     logger.error('Failed to switch playlist item:', error);

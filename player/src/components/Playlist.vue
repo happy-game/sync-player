@@ -52,11 +52,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, onUnmounted } from 'vue';
 import axios from 'axios';
 import { useUserStore } from '../stores/user';
 import { usePlaylistStore } from '../stores/playlist';
 import logger from '../utils/logger';
+import { wsManager } from '../utils/websocket';
 
 const userStore = useUserStore();
 const playlistStore = usePlaylistStore();
@@ -74,7 +75,7 @@ const fetchPlaylist = async () => {
       roomId: userStore.roomId
     };
     const response = await axios.get('/api/playlist/query', { params });
-    playlistStore.setPlaylist(response.data);
+    await playlistStore.setPlaylist(response.data);
   } catch (err) {
     logger.error('Fetch playlist error', err);
     error.value = '获取播放列表失败';
@@ -122,5 +123,15 @@ onMounted(() => {
   if (userStore.username) {
     fetchPlaylist();
   }
+  wsManager.subscribe('updatePlaylist', handleUpdatePlaylist);
 });
+
+onUnmounted(() => {
+  wsManager.unsubscribe('updatePlaylist', handleUpdatePlaylist);
+});
+
+function handleUpdatePlaylist() {
+  logger.info('Received updatePlaylist message');
+  fetchPlaylist();
+}
 </script>
