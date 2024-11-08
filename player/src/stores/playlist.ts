@@ -128,8 +128,10 @@ export const usePlaylistStore = defineStore('playlist', () => {
     try {
       await axios.post('/api/playlist/switch', { playlistItemId: videoId });
       if (currentVideoId.value !== -1) {
-        // Remove the currently playing video
-        playlist.value = playlist.value.filter((video) => video.id !== currentVideoId.value);
+        // Remove the currently playing video if it is not the same as the videoId
+        if (currentVideoId.value !== videoId){
+          playlist.value = playlist.value.filter((video) => video.id !== currentVideoId.value);
+        }
       }
       // Move the videoId video to the first position and set its status to playing
       const videoIndex = playlist.value.findIndex((video) => video.id === videoId);
