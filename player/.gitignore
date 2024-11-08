@@ -31,3 +31,8 @@ coverage
 
 test-results/
 playwright-report/
+
+# env files
+.env
+.env.local
+.env.*.local

@@ -12,7 +12,9 @@
     "type-check": "vue-tsc --build --force"
   },
   "dependencies": {
+    "@types/dotenv": "^6.1.1",
     "axios": "^1.7.7",
+    "dotenv": "^16.4.5",
     "pinia": "^2.2.4",
     "video.js": "^8.19.1",
     "videojs-playlist": "^5.2.0",
