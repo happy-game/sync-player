@@ -1,5 +1,6 @@
 import winston from 'winston';
 import path from 'path';
+import env from './env';
 
 // define log levels
 const levels = {
@@ -28,6 +29,7 @@ const consoleFormat = winston.format.combine(
 
 // create logger instance
 const logger = winston.createLogger({
+  level: env.LOG_LEVEL,
   levels,
   transports: [
     // console output

@@ -1,9 +1,12 @@
 {
   "dependencies": {
+    "@types/dotenv": "^6.1.1",
     "@types/express": "^5.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
     "express": "^4.21.1",
+    "mysql2": "^3.11.4",
     "sequelize": "^6.37.5",
     "sqlite3": "^5.1.7",
     "winston": "^3.16.0",
