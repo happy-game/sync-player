@@ -37,6 +37,7 @@ router.get('/query', async (req: Request, res: Response) => {
   }
 
   let playlistItemId: number | undefined;
+  let playStatus: PlayStatus | undefined;
   if (req.query.playlistItemId) {
     playlistItemId = parseInt(req.query.playlistItemId as string);
     if (isNaN(playlistItemId)) {
@@ -44,10 +45,26 @@ router.get('/query', async (req: Request, res: Response) => {
       return;
     }
   }
+  if (req.query.playStatus) {
+    playStatus = req.query.playStatus as PlayStatus;
+    if (!Object.values(PlayStatus).includes(playStatus)) {
+      res.status(400).json({ error: 'Invalid playStatus' });
+      return;
+    }
+  }
 
   try {
-    const items = await queryPlaylistItems(roomId, playlistItemId);
-    res.json(items);
+    // if didn't specify  playStatus, query PLAYING items and NEW items
+    if (!playStatus) {
+      const playingItems = await queryPlaylistItems(roomId, undefined, PlayStatus.PLAYING);
+      const newItems = await queryPlaylistItems(roomId, undefined, PlayStatus.NEW);
+      const items = playingItems.concat(newItems);
+      res.json(items);
+    }
+    else {
+      const items = await queryPlaylistItems(roomId, playlistItemId, playStatus);
+      res.json(items);
+    }
   } catch (error) {
     res.status(500).json({ message: 'Internal server error' });
   }
@@ -119,7 +136,7 @@ router.post('/switch', async (req: Request, res: Response) => {
     return;
   }
 
-  try { // FIXME: did't change the play status
+  try { 
     // set all playing items to finished and the new item to playing
     const playingItems = await queryPlaylistItems(roomId, undefined, PlayStatus.PLAYING);
     playingItems.forEach(async (item) => {

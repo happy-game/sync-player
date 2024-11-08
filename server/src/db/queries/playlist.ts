@@ -66,6 +66,6 @@ export async function updatePlaylistItem(playlistItemId: number, title?: string,
   }
 }
 
-export async function updatePlayStatus(roomId: number, playStatus: PlayStatus) {
-  await PlaylistItem.update({ playStatus }, { where: { roomId } });
+export async function updatePlayStatus(id: number, playStatus: PlayStatus) {
+  await PlaylistItem.update({ playStatus }, { where: { id } });
 }
