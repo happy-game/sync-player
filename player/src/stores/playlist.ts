@@ -34,10 +34,14 @@ export const usePlaylistStore = defineStore('playlist', () => {
     const playingItem = playlist.value.find((video) => video.playStatus === PlayStatus.PLAYING);
     return playingItem ? playingItem.id : -1;
   });
+  const currentVideoItem = computed(() => {
+    return playlist.value.find((video) => video.playStatus === PlayStatus.PLAYING);
+  });
 
   function setPlaylist(newPlaylist: PlaylistItem[]) {
     playlist.value = newPlaylist;
-    playlistChanged.value = !playlistChanged.value; // FIXME: a better way to trigger the playlist update
+    switchVideo(playlist.value[0].id);  // TODO: use /sync/query to get the current playing video
+    // playlistChanged.value = !playlistChanged.value; // FIXME: a better way to trigger the playlist update
   }
 
   async function addVideo(roomId: number, title:string, urls:string) {
@@ -54,7 +58,7 @@ export const usePlaylistStore = defineStore('playlist', () => {
           roomId,
           title,
           orderIndex: Math.max(...playlist.value.map((video) => video.orderIndex), -1) + 1,   // FIXME: a better way to calculate orderIndex
-          playStatus: 'PENDING',
+          playStatus: PlayStatus.NEW,
           createdTime: new Date().toISOString(),
           VideoSources: urls.split(',').map((url, index) => ({
               id: index,
@@ -64,7 +68,7 @@ export const usePlaylistStore = defineStore('playlist', () => {
               lastActiveTime: new Date().toISOString()
           }))
         });
-        playlistChanged.value = !playlistChanged.value; // FIXME: a better way to trigger the playlist update
+        // playlistChanged.value = !playlistChanged.value; // FIXME: a better way to trigger the playlist update
       }
     }
     catch (error) {
@@ -123,26 +127,16 @@ export const usePlaylistStore = defineStore('playlist', () => {
   async function switchVideo(videoId: number){
     try {
       await axios.post('/api/playlist/switch', { playlistItemId: videoId });
-      if (currentVideoId.value !== -1) {  // 当前有正在播放的视频
-        const currentVideoIndex = playlist.value.findIndex((video) => video.id === currentVideoId.value);
-        playlist.value[currentVideoIndex].playStatus = PlayStatus.FINISHED;
-
-        const newVideoIndex = playlist.value.findIndex((video) => video.id === videoId);
-        playlist.value[newVideoIndex].playStatus = PlayStatus.PLAYING;
-
-        // 把 newVideoIndex 移动到第一个
-        const temp = playlist.value[newVideoIndex];
-        playlist.value.splice(newVideoIndex, 1);
-        playlist.value.unshift(temp);
+      if (currentVideoId.value !== -1) {
+        // Remove the currently playing video
+        playlist.value = playlist.value.filter((video) => video.id !== currentVideoId.value);
       }
-      else {  // 当前没有正在播放的视频
-        const newVideoIndex = playlist.value.findIndex((video) => video.id === videoId);
-        playlist.value[newVideoIndex].playStatus = PlayStatus.PLAYING;
-
-        // 把 newVideoIndex 移动到第一个
-        const temp = playlist.value[newVideoIndex];
-        playlist.value.splice(newVideoIndex, 1);
-        playlist.value.unshift(temp);
+      // Move the videoId video to the first position and set its status to playing
+      const videoIndex = playlist.value.findIndex((video) => video.id === videoId);
+      if (videoIndex !== -1) {
+        const video = playlist.value.splice(videoIndex, 1)[0];
+        video.playStatus = PlayStatus.PLAYING;
+        playlist.value.unshift(video);
       }
       playlistChanged.value = !playlistChanged.value; // FIXME: a better way to trigger the playlist update
     }
@@ -155,6 +149,7 @@ export const usePlaylistStore = defineStore('playlist', () => {
     playlistLength,
     playlistChanged,
     currentVideoId,
+    currentVideoItem,
     setPlaylist,
     addVideo,
     deleteVideo,

@@ -9,8 +9,6 @@ import { ref, onMounted, onUnmounted, watch } from 'vue';
 import videojs from 'video.js';
 import type Player from 'video.js/dist/types/player';
 import 'video.js/dist/video-js.min.css'
-import 'videojs-playlist';
-import type { PlaylistItem } from '@/types/videojs-playlist';
 import { usePlaylistStore } from '@/stores/playlist';
 
 import logger from '@/utils/logger';
@@ -29,7 +27,6 @@ let please_enable_sync = false;
 const syncThreshold = 1;
 
 const playlistStore = usePlaylistStore();
-const playlist: PlaylistItem[] = [];  // 播放列表
 
 function initPlayer() {
 	const options = {
@@ -74,21 +71,12 @@ function initPlayer() {
 	player = videojs("videojs-player", options);
   
 	if (player) {
-		(player as any).playlist(playlist);		// TODO: fix this, type error
-		
-		// player.on('playlistitem', () => { 
-		// 	const index = (player as any).playlist.currentItem();
-		// 	logger.info(`Playing playlist item ${index}: ${playlist[index].title}`);
-		// });
-
     player.on('canplay', () => {
       if (please_enable_sync) {
         enable_sync = true;
         please_enable_sync = false;
       }
     });
-		
-		(player as any).playlist.autoadvance(0);
 	}
 
 	player?.on('seeked', sendSyncData);
@@ -167,24 +155,11 @@ async function getSyncData() {
 watch(() => playlistStore.playlistChanged, (newPlaylist) => {
   if (player) {
     logger.info('Playlist changed');
-    // 从 playlistStore 中提取播放列表数据并转换为 videojs-playlist 需要的格式
-    const videojsPlaylist = playlistStore.playlist.map(item => ({
-      sources: item.VideoSources.map(source => ({
-        src: source.url,
-        type: 'video/mp4' // TODO: 从 source.url 中推断
-      })),
-      poster: '', 
-      title: item.title,
-      id: item.id
-    }));
-    // 更新播放器的播放列表
-    (player as any).playlist(videojsPlaylist);
-    
-    // 如果播放列表不为空，开始播放第一个视频
-    if (videojsPlaylist.length > 0) {
-      (player as any).playlist.currentItem(0);
-      player.play();
-    }
+    player.src({
+      src: playlistStore.currentVideoItem?.VideoSources[0].url,
+      type: 'video/mp4'
+    });
+    player.play();
   }
 });
 

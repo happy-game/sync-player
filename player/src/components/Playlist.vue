@@ -14,7 +14,7 @@
         :key="item.id"
         class="p-2 bg-gray-100 rounded hover:bg-gray-200 cursor-pointer"
       >
-        <div class="flex justify-between items-center">
+        <div :class="['flex justify-between items-center', item.playStatus === 'playing' ? 'bg-green-100' : '']"> 
           <span>{{ item.title }}</span>
           <!-- Play Top Up Down Delete -->
           <button 
@@ -76,6 +76,7 @@ const fetchPlaylist = async () => {
     const response = await axios.get('/api/playlist/query', { params });
     playlistStore.setPlaylist(response.data);
   } catch (err) {
+    logger.error('Fetch playlist error', err);
     error.value = '获取播放列表失败';
   } finally {
     loading.value = false;
