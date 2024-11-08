@@ -24,6 +24,7 @@ interface SyncData {
 let player: Player | null = null;
 let enable_sync = true;
 let please_enable_sync = false;
+let current_video_id = 0;
 const syncThreshold = 1;
 
 const playlistStore = usePlaylistStore();
@@ -152,14 +153,19 @@ async function getSyncData() {
   }
 }
 
-watch(() => playlistStore.playlistChanged, (newPlaylist) => {
+watch(() => playlistStore.playlistChanged, () => {
   if (player) {
     logger.info('Playlist changed');
-    player.src({
-      src: playlistStore.currentVideoItem?.VideoSources[0].url,
-      type: 'video/mp4'
-    });
-    player.play();
+    if (playlistStore.currentVideoItem) {
+      if (playlistStore.currentVideoId !== current_video_id) {
+        current_video_id = playlistStore.currentVideoId;
+        player.src({
+          src: playlistStore.currentVideoItem?.VideoSources[0].url,
+          type: 'video/mp4'
+        });
+        player.play();
+      }
+    }
   }
 });
 
