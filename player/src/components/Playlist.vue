@@ -1,7 +1,8 @@
 <template>
   <div v-if="userStore.username" class="playlist-container p-4">
     <h2 class="text-xl font-bold mb-4">播放列表</h2>
-    <button @click="clearPlaylist()" class="mb-4" v-if="playlistStore.playlist.length > 0">清空播放列表</button>
+    <!-- <button @click="clearPlaylist()" class="mb-4" v-if="playlistStore.playlist.length > 0">清空播放列表</button> -->
+    <Button @click="clearPlaylist()" class="mb-4" v-if="playlistStore.playlist.length > 0">清空播放列表</Button>
     <div v-if="loading" class="text-center">
       加载中...
     </div>
@@ -58,6 +59,8 @@ import { useUserStore } from '../stores/user';
 import { usePlaylistStore } from '../stores/playlist';
 import logger from '../utils/logger';
 import { wsManager } from '../utils/websocket';
+
+import { Button } from './ui/button';
 
 const userStore = useUserStore();
 const playlistStore = usePlaylistStore();

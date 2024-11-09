@@ -14,8 +14,14 @@
   "dependencies": {
     "@types/dotenv": "^6.1.1",
     "axios": "^1.7.7",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.1",
     "dotenv": "^16.4.5",
+    "lucide-vue-next": "^0.456.0",
     "pinia": "^2.2.4",
+    "radix-vue": "^1.9.9",
+    "tailwind-merge": "^2.5.4",
+    "tailwindcss-animate": "^1.0.7",
     "video.js": "^8.19.1",
     "videojs-playlist": "^5.2.0",
     "vue": "^3.5.12"

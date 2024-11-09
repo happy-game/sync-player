@@ -2,10 +2,22 @@ import { fileURLToPath, URL } from 'node:url'
 import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
+import autoprefixer from 'autoprefixer'
+import tailwind from 'tailwindcss'
+
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   // 加载环境变量
   const env = loadEnv(mode, process.cwd())
+  
+  css: {
+    postcss: {
+      plugins: [
+        tailwind(),
+        autoprefixer()
+      ]
+    }
+  }
   
   return {
     plugins: [
