@@ -1,0 +1,37 @@
+{
+    "name": "Sync Player Development",
+    "image": "mcr.microsoft.com/devcontainers/typescript-node:18",
+    
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "dbaeumer.vscode-eslint",
+                "esbenp.prettier-vscode",
+                "vue.volar",
+                "mtxr.sqltools",
+                "mtxr.sqltools-driver-sqlite"
+            ],
+            "settings": {
+                "editor.formatOnSave": true,
+                "editor.defaultFormatter": "esbenp.prettier-vscode",
+                "typescript.tsdk": "node_modules/typescript/lib"
+            }
+        }
+    },
+    
+    "forwardPorts": [
+        5173,  
+        3000,  
+        9323   // Playwright 测试
+    ],
+    
+    "postCreateCommand": "cd player && npm install && cd ../server && npm install",
+    
+    "features": {
+        "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+        "ghcr.io/meaningful-ooo/devcontainer-features/fish:1": {},   // I like fish
+        "ghcr.io/devcontainers-extra/features/cz-cli:1": {}
+    },
+
+    "remoteUser": "node"
+}
