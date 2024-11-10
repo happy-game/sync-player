@@ -23,17 +23,32 @@ onMounted(() => {
 </script>
 
 <template>
-  <header>
-    <div v-if="userStore.username" class="p-4 bg-gray-100">
-      欢迎, {{ userStore.username }} | 房间: {{ userStore.roomName }}
-    </div>
-  </header>
+  <div class="min-h-screen bg-background">
+    <header class="border-b">
+      <div v-if="userStore.username" class="px-4 flex items-center justify-between h-14">
+        <div class="text-sm text-muted-foreground">
+          欢迎, {{ userStore.username }} | 房间: {{ userStore.roomName }}
+        </div>
+      </div>
+    </header>
 
-  <main>
-    <VideoPlayer />
-    <AddPlaylist />
-    <Playlist />
-  </main>
+    <main class="h-[calc(100vh-3.5rem)]">
+      <div class="grid grid-cols-4 h-full">
+        <div class="col-span-3 flex flex-col">
+          <div class="flex-1">
+            <VideoPlayer class="w-full h-full" />
+          </div>
+          <div class="p-4">
+            <AddPlaylist />
+          </div>
+        </div>
+        
+        <div class="col-span-1 p-4">
+          <Playlist class="h-full" />
+        </div>
+      </div>
+    </main>
+  </div>
 
   <LoginModal 
     :show="showLoginModal"

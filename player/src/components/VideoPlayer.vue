@@ -1,6 +1,14 @@
 <template>
-	<div class="w-full h-screen flex items-center justify-center sm:items-start sm:justify-start">
-		<video class="video-js vjs-default-skin w-full sm:w-3/4 md:w-2/3 lg:w-1/2" id="videojs-player"></video>
+	<div class="w-full h-full">
+		<video
+			id="videojs-player"
+			class="video-js vjs-big-play-centered w-full h-full"
+		>
+			<p class="vjs-no-js">
+				To view this video please enable JavaScript, and consider upgrading to a
+				web browser that supports HTML5 video
+			</p>
+		</video>
 	</div>
 </template>
 
