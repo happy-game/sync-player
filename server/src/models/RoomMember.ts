@@ -9,6 +9,8 @@ class RoomMember extends Model {
   declare userId: number;
   declare isAdmin: boolean;
   declare canGrantAdmin: boolean;
+  declare online: boolean;
+  declare User?: User;
 }
 
 RoomMember.init({
@@ -40,6 +42,10 @@ RoomMember.init({
   canGrantAdmin: {
     type: DataTypes.BOOLEAN,
     defaultValue: false
+  },
+  online: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
   }
 }, {
   sequelize,
@@ -47,5 +53,7 @@ RoomMember.init({
   tableName: 'room_members',
   timestamps: false
 });
+
+RoomMember.belongsTo(User, { foreignKey: 'userId' });
 
 export default RoomMember; 

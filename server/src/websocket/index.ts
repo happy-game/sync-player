@@ -2,6 +2,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { Server } from 'http';
 import logger from '../config/logger';
 import { getRoomPlayStatus, deleteRoomPlayStatus } from '../db/queries/roomPlayStatus';
+import { setMemberOnline } from '../db/queries/roomMember';
 
 interface WebSocketMap {
     [roomId: number]: {
@@ -31,6 +32,14 @@ export function initWebSocket(server: Server) {
                             connections[roomId] = {};
                         }
                         connections[roomId][userId] = ws;
+                        
+                        // 广播用户列表更新
+                        setMemberOnline(parseInt(roomId), parseInt(userId), true)
+                        const data = {
+                            type: 'updateUserList',
+                            roomId: parseInt(roomId),
+                        }
+                        broadcast(parseInt(roomId), data);
                     }
                     logger.info(`User ${userId} connected to room ${roomId} using websocket`);
                 }
@@ -49,16 +58,24 @@ export function initWebSocket(server: Server) {
                         delete connections[roomId][userId];
                         logger.info(`User ${userId} disconnected`);
                         // if the room is empty, delete the room and the play status
-                        if (Object.keys(connections[roomId]).length === 0) {
-                            delete connections[roomId];
-                            deleteRoomPlayStatus(Number(roomId))
-                            .then(() => {
-                                logger.info(`Room ${roomId} deleted`);
-                            })
-                            .catch((error) => {
-                                logger.error(`Failed to delete room ${roomId}:`, error);
-                            });
+                        // if (Object.keys(connections[roomId]).length === 0) {
+                        //     delete connections[roomId];
+                        //     deleteRoomPlayStatus(Number(roomId))
+                        //     .then(() => {
+                        //         logger.info(`Room ${roomId} deleted`);
+                        //     })
+                        //     .catch((error) => {
+                        //         logger.error(`Failed to delete room ${roomId}:`, error);
+                        //     });
+                        // }
+                        
+                        // 广播用户列表更新
+                        setMemberOnline(parseInt(roomId), parseInt(userId), false)
+                        const data = {
+                            type: 'updateUserList',
+                            roomId: parseInt(roomId),
                         }
+                        broadcast(parseInt(roomId), data);
                         break;
                     }
                 }

@@ -4,6 +4,7 @@ import VideoPlayer from './components/VideoPlayer.vue';
 import LoginModal from './components/LoginModal.vue';
 import Playlist from './components/Playlist.vue';
 import AddPlaylist from './components/AddPlaylist.vue';
+import Users from './components/Users.vue';
 import { useUserStore } from './stores/user';
 import logger from './utils/logger';
 
@@ -49,7 +50,7 @@ onMounted(() => {
       </div>
     </main>
   </div>
-
+  <Users />
   <LoginModal 
     :show="showLoginModal"
     @close="showLoginModal = false"

@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { createRoom, getRoomByName, verifyRoomPassword, getRoomById } from '../db/queries/room';
-import { addMemberToRoom, removeMemberFromRoom, getRoomMember } from '../db/queries/roomMember';
+import { addMemberToRoom, removeMemberFromRoom, getRoomMember, getOnlineUsers } from '../db/queries/roomMember';
 import { getUserById } from '../db/queries/user';
 import sequelize from '../db/connection';
 import logger from '../config/logger';
@@ -122,6 +122,17 @@ router.post('/leave', async (req: Request, res: Response): Promise<void> => {
     res.json({ message: 'Successfully left the room' });
   } catch (error) {
     logger.error('Failed to leave room:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.get('/queryOnlineUsers', async (req: Request, res: Response) => {
+  const roomId = Number(req.query.roomId);
+  try {
+    const members = await getOnlineUsers(roomId);
+    res.json(members);
+  } catch (error) {
+    logger.error('Failed to query online users:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

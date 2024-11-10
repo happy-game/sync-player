@@ -4,14 +4,37 @@ import axios from 'axios';
 import logger from '@/utils/logger';
 import { wsManager } from '@/utils/websocket';
 
+export interface UserListItem {
+  id: number;
+  username: string;
+  online: boolean;
+  isAdmin: boolean;
+}
+
 export const useUserStore = defineStore('user', () => {
   const username = ref('');
   const roomName = ref('');
   const userId = ref<number | null>(null);
   const roomId = ref<number | null>(null);
+  const userList = ref<UserListItem[]>([]);
+
+  function updateUserList(users: UserListItem[]) {
+    userList.value = users;
+  }
+
+  async function fetchOnlineUsers() {
+    try {
+      const response = await axios.get(`api/room/queryOnlineUsers?roomId=${roomId.value}`);
+      updateUserList(response.data);
+    } catch (error) {
+      logger.error('获取在线用户列表失败:', error);
+    }
+  }
 
   function connectWebSocket() {
     wsManager.connect(userId.value, roomId.value);
+    // 连接后立即获取在线用户列表
+    fetchOnlineUsers();
   }
 
   async function login(newUsername: string, newRoomName: string) {
@@ -90,8 +113,11 @@ export const useUserStore = defineStore('user', () => {
     roomName,
     userId,
     roomId,
+    userList,
     login,
     loadFromCookie,
     connectWebSocket,
+    updateUserList,
+    fetchOnlineUsers,
   };
 }); 
