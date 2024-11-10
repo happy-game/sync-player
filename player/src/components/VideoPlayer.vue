@@ -21,6 +21,7 @@ import { usePlaylistStore } from '@/stores/playlist';
 
 import logger from '@/utils/logger';
 import { wsManager } from '@/utils/websocket';
+import { get } from 'node_modules/axios/index.cjs';
 
 interface SyncData {
   time: number;
@@ -155,9 +156,10 @@ async function getSyncData() {
     const response = await fetch(`/api/sync/query`);
     const result = await response.json();
     logger.info('Sync data received', result);
-	updatePlayer(result);
+	  return result;
   } catch (error) {
     logger.error('Error getting sync data', error);
+    return null;
   }
 }
 
@@ -194,17 +196,25 @@ onUnmounted(() => {
   wsManager.unsubscribe('updatePause', handleUpdatePause);
 });
 
-function handleUpdateTime(data: any) {
+async function handleUpdateTime(data: any) {
   logger.info('Received update time', data);
-	updatePlayer(data);
+	// updatePlayer(data);
+  const result = await getSyncData();  // FIXME: 目标设备会大约快 2s, 检查时间计算逻辑
+  if (result) {
+    updatePlayer(result);
+  }
 }
 
-function handleUpdatePause(data: any) {
+async function handleUpdatePause(data: any) {
   logger.info('Received update pause', data);
-  if (data.paused) {
-    player?.pause();
-  } else {
-    player?.play();
+  const result = await getSyncData();
+  if (result) {
+    const paused = result.paused;
+    if (paused) {
+      player?.pause();
+    } else {
+      player?.play();
+    }
   }
 }
 </script>
