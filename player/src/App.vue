@@ -33,8 +33,8 @@ onMounted(() => {
     </header>
 
     <main class="h-[calc(100vh-3.5rem)]">
-      <div class="grid grid-cols-4 h-full">
-        <div class="col-span-3 flex flex-col">
+      <div class="flex flex-col md:grid md:grid-cols-4 h-full">
+        <div class="flex-1 md:col-span-3 flex flex-col">
           <div class="flex-1">
             <VideoPlayer class="w-full h-full" />
           </div>
@@ -43,8 +43,8 @@ onMounted(() => {
           </div>
         </div>
         
-        <div class="col-span-1 p-4">
-          <Playlist class="h-full" />
+        <div class="h-[300px] md:h-full md:col-span-1 p-4 border-t md:border-t-0 md:border-l">
+          <Playlist class="h-full overflow-y-auto" />
         </div>
       </div>
     </main>
