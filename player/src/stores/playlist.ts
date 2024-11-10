@@ -50,7 +50,9 @@ export const usePlaylistStore = defineStore('playlist', () => {
     // } catch (error) {
     //   logger.error('Failed to get current playing video:', error);
     // }
-    switchVideo(playlist.value[0].id);  // TODO: use /sync/query to get the current playing video
+    if (playlist.value.length > 0) {
+      switchVideo(playlist.value[0].id);  // TODO: use /sync/query to get the current playing video
+    }
     playlistChanged.value = !playlistChanged.value; // FIXME: a better way to trigger the playlist update
   }
 
