@@ -21,7 +21,6 @@ import { usePlaylistStore } from '@/stores/playlist';
 
 import logger from '@/utils/logger';
 import { wsManager } from '@/utils/websocket';
-import { get } from 'node_modules/axios/index.cjs';
 
 interface SyncData {
   time: number;
