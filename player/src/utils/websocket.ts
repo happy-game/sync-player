@@ -30,7 +30,9 @@ export class WebSocketManager {
       this.ws.close();
     }
 
-    this.ws = new WebSocket(`ws://${location.host}/socket`);
+    // 根据当前页面协议自动选择 ws 或 wss
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    this.ws = new WebSocket(`${protocol}//${location.host}/socket`);
     
     this.ws.onopen = () => {
       if (this.ws && userId && roomId) {

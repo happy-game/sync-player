@@ -10,7 +10,7 @@ const getEnvValue = (key: string, defaultValue: string): string => {
 export const env = {
   // API配置
   API_BASE_URL: getEnvValue('VITE_API_BASE_URL', 'http://localhost:3000'),
-  WS_BASE_URL: getEnvValue('VITE_WS_BASE_URL', 'ws://localhost:3000'),
+  WS_BASE_URL: getEnvValue('VITE_WS_BASE_URL', `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`),
   
   // 调试配置
   DEBUG: getEnvValue('VITE_DEBUG', 'false') === 'true',
