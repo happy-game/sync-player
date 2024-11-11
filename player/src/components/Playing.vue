@@ -1,20 +1,20 @@
 <template>
-  <Card class="w-[350px]">
-    <CardHeader>
-      <CardTitle>当前播放</CardTitle>
-      <CardDescription>当前正在播放的视频.</CardDescription>
+  <Card class="w-full">
+    <CardHeader class="p-3 pb-1.5">
+      <CardTitle class="text-base">当前播放</CardTitle>
+      <CardDescription class="text-xs">当前正在播放的视频.</CardDescription>
     </CardHeader>
-    <CardContent>
+    <CardContent class="p-3 pt-1.5">
       <form>
-        <div class="grid items-center w-full gap-4">
-          <div class="flex flex-col space-y-1.5">
-            <Label for="title">标题</Label>
-            <Input id="title" :value="playlistStore.currentVideoItem?.title" disabled/>
+        <div class="grid items-center w-full gap-1.5">
+          <div class="flex flex-col space-y-0.5">
+            <Label class="text-xs" for="title">标题</Label>
+            <Input class="h-8" id="title" :value="playlistStore.currentVideoItem?.title" disabled/>
           </div>
-          <div class="flex flex-col space-y-1.5">
-            <Label for="source">视频源</Label>
+          <div class="flex flex-col space-y-0.5">
+            <Label class="text-xs" for="source">视频源</Label>
             <Select v-model="selectedSourceIndex">
-              <SelectTrigger>
+              <SelectTrigger class="h-8">
                 <SelectValue :placeholder="'暂无视频源'" />
               </SelectTrigger>
               <SelectContent>
@@ -28,12 +28,12 @@
               </SelectContent>
             </Select>
           </div>
-          <div class="flex flex-col space-y-1.5">
-            <Label for="newSource">新增视频源</Label>
-            <div class="flex gap-2">
-              <Input id="newSource" v-model="newSource" placeholder="输入新的视频源URL"/>
-              <Button variant="outline" size="icon" @click="addSource">
-                <Plus class="h-4 w-4" />
+          <div class="flex flex-col space-y-0.5">
+            <Label class="text-xs" for="newSource">新增视频源</Label>
+            <div class="flex gap-1.5">
+              <Input class="h-8" id="newSource" v-model="newSource" placeholder="输入新的视频源URL"/>
+              <Button class="h-8 w-8" variant="outline" size="icon" @click="addSource">
+                <Plus class="h-3.5 w-3.5" />
               </Button>
             </div>
           </div>

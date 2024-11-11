@@ -40,7 +40,7 @@ onMounted(() => {
           <div class="flex-1">
             <VideoPlayer class="w-full h-full" />
           </div>
-          <div class="p-4 flex gap-4">
+          <div class="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
             <AddPlaylist />
             <Playing />
           </div>
