@@ -5,7 +5,7 @@
       <CardDescription class="text-xs">当前正在播放的视频.</CardDescription>
     </CardHeader>
     <CardContent class="p-3 pt-1.5">
-      <form>
+      <form @submit.prevent>
         <div class="grid items-center w-full gap-1.5">
           <div class="flex flex-col space-y-0.5">
             <Label class="text-xs" for="title">标题</Label>
@@ -32,9 +32,25 @@
             <Label class="text-xs" for="newSource">新增视频源</Label>
             <div class="flex gap-1.5">
               <Input class="h-8" id="newSource" v-model="newSource" placeholder="输入新的视频源URL"/>
-              <Button class="h-8 w-8" variant="outline" size="icon" @click="addSource">
+              <Button type="button" class="h-8 w-8" variant="outline" size="icon" @click="addSource">
                 <Plus class="h-3.5 w-3.5" />
               </Button>
+            </div>
+          </div>
+          <div class="flex flex-col space-y-0.5">
+            <Label class="text-xs">本地文件</Label>
+            <div class="flex gap-1.5">
+              <Button class="h-8" variant="outline" @click="handleLocalFile">
+                <FolderOpen class="h-3.5 w-3.5 mr-1" />
+                选择文件
+              </Button>
+              <input
+                ref="fileInput"
+                type="file"
+                accept="video/*"
+                class="hidden"
+                @change="onFileSelected"
+              />
             </div>
           </div>
         </div>
@@ -46,7 +62,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
 import { usePlaylistStore } from '@/stores/playlist';
-import { Plus } from 'lucide-vue-next';
+import { Plus, FolderOpen } from 'lucide-vue-next';
 import logger from '@/utils/logger';
 
 import { Button } from '@/components/ui/button';
@@ -72,6 +88,25 @@ const playlistStore = usePlaylistStore();
 const selectedSourceIndex = ref(0);
 const newSource = ref('');
 const playerStore = usePlayerStore();
+
+const fileInput = ref<HTMLInputElement | null>(null);
+
+function handleLocalFile() {
+  fileInput.value?.click();
+}
+
+function onFileSelected(event: Event) {
+  const input = event.target as HTMLInputElement;
+  if (input.files && input.files[0]) {
+    const file = input.files[0];
+    const localUrl = URL.createObjectURL(file);
+    logger.info('选择本地文件:', file.name);
+    playerStore.updateSource(localUrl);
+    
+    // 清空input的值，这样同一个文件可以重复选择
+    input.value = '';
+  }
+}
 
 // 计算当前视频源
 const currentSource = computed(() => {
@@ -105,8 +140,7 @@ function addSource() {
     return;
   }
 
-  logger.info('添加新视频源:', newSource.value);
-  // TODO: 实现添加源到数据库的逻辑
+  logger.error('该功能未实现');
   newSource.value = '';
 }
 </script> 
