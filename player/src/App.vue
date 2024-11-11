@@ -26,13 +26,13 @@ onMounted(() => {
 
 <template>
   <div class="min-h-screen bg-background">
-    <header class="border-b">
+    <!-- <header class="border-b">
       <div v-if="userStore.username" class="px-4 flex items-center justify-between h-14">
         <div class="text-sm text-muted-foreground">
           欢迎, {{ userStore.username }} | 房间: {{ userStore.roomName }}
         </div>
       </div>
-    </header>
+    </header> -->
 
     <main class="h-[calc(100vh-3.5rem)]">
       <div class="flex flex-col md:grid md:grid-cols-4 h-full">
