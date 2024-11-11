@@ -5,6 +5,7 @@ import LoginModal from './components/LoginModal.vue';
 import Playlist from './components/Playlist.vue';
 import AddPlaylist from './components/AddPlaylist.vue';
 import Users from './components/Users.vue';
+import Playing from './components/Playing.vue';
 import { useUserStore } from './stores/user';
 import logger from './utils/logger';
 
@@ -39,8 +40,9 @@ onMounted(() => {
           <div class="flex-1">
             <VideoPlayer class="w-full h-full" />
           </div>
-          <div class="p-4">
+          <div class="p-4 flex gap-4">
             <AddPlaylist />
+            <Playing />
           </div>
         </div>
         
