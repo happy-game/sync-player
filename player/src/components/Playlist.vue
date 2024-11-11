@@ -54,7 +54,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, watch, onUnmounted } from 'vue';
-import axios from 'axios';
+import request from '../utils/axios';
 import { useUserStore } from '../stores/user';
 import { usePlaylistStore } from '../stores/playlist';
 import logger from '../utils/logger';
@@ -77,7 +77,7 @@ const fetchPlaylist = async () => {
     const params = {
       roomId: userStore.roomId
     };
-    const response = await axios.get('/api/playlist/query', { params });
+    const response = await request.get('/playlist/query', { params });
     await playlistStore.setPlaylist(response.data);
   } catch (err) {
     logger.error('Fetch playlist error', err);

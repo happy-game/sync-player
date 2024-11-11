@@ -1,5 +1,5 @@
 import logger from './logger';
-
+import { env } from '../config/env';
 type MessageHandler = (data: any) => void;
 
 export class WebSocketManager {
@@ -31,8 +31,13 @@ export class WebSocketManager {
     }
 
     // 根据当前页面协议自动选择 ws 或 wss
-    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    this.ws = new WebSocket(`${protocol}//${location.host}/socket`);
+    // const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    // this.ws = new WebSocket(`${protocol}//${location.host}/socket`);
+    const urlConfig = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('urlConfig='));
+    const url = urlConfig ? JSON.parse(decodeURIComponent(urlConfig.split('=')[1])).wsBaseUrl : env.WS_BASE_URL;
+    this.ws = new WebSocket(url);
     
     this.ws.onopen = () => {
       if (this.ws && userId && roomId) {

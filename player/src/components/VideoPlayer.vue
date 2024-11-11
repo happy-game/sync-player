@@ -21,6 +21,7 @@ import { usePlaylistStore } from '@/stores/playlist';
 
 import logger from '@/utils/logger';
 import { wsManager } from '@/utils/websocket';
+import request from '@/utils/axios';
 
 interface SyncData {
   time: number;
@@ -107,14 +108,8 @@ async function sendSyncData() {
     videoId
   };
   try {
-    const response = await fetch('/api/sync/updateTime', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(data)
-    });
-    const result = await response.json();
+    const response = await request.post('/sync/updateTime', data);
+    const result = response.data;
     logger.info('Sync data sent', result);
   } catch (error) {
     logger.error('Error sending sync data', error);
@@ -150,12 +145,11 @@ async function updatePlayer(data: SyncData) {
 }
 
 async function getSyncData() {
-  // const videoId = 1;  // TODO
   try {
-    const response = await fetch(`/api/sync/query`);
-    const result = await response.json();
+    const response = await request.get(`/sync/query`);
+    const result = response.data;
     logger.info('Sync data received', result);
-	  return result;
+    return result;
   } catch (error) {
     logger.error('Error getting sync data', error);
     return null;

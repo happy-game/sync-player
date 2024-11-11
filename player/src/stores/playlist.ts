@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import axios from 'axios'
+import request from '@/utils/axios'
 import logger from '@/utils/logger'
 
 // define an interface for the playlist object
@@ -58,7 +58,7 @@ export const usePlaylistStore = defineStore('playlist', () => {
 
   async function addVideo(roomId: number, title:string, urls:string) {
     try {
-      const response = await axios.post('/api/playlist/add', {
+      const response = await request.post('/playlist/add', {
         roomId,
         title,
         urls
@@ -90,7 +90,7 @@ export const usePlaylistStore = defineStore('playlist', () => {
 
   async function deleteVideo(videoId: number) {
     try {
-      await axios.delete('/api/playlist/delete', { data: { playlistItemId: videoId } });
+      await request.delete('/playlist/delete', { data: { playlistItemId: videoId } });
       playlist.value = playlist.value.filter((video) => video.id !== videoId);
     }
     catch (error) {
@@ -111,7 +111,7 @@ export const usePlaylistStore = defineStore('playlist', () => {
     ];
     try {
       // update the orderIndex of the two videos in the server
-      await axios.post('/api/playlist/updateOrder', { orderIndexList  });
+      await request.post('/playlist/updateOrder', { orderIndexList  });
       const temp = playlist.value[fromIndex];
 
       // swap the two videos in local playlist
@@ -128,7 +128,7 @@ export const usePlaylistStore = defineStore('playlist', () => {
   async function clearPlaylist(roomId: number) {
     logger.info('Clearing playlist in roomId', roomId);
     try {
-      await axios.delete('/api/playlist/clear', { data: { roomId: roomId } });
+      await request.delete('/playlist/clear', { data: { roomId: roomId } });
       playlist.value = [];
     }
     catch (error) {
@@ -138,7 +138,7 @@ export const usePlaylistStore = defineStore('playlist', () => {
 
   async function switchVideo(videoId: number){
     try {
-      await axios.post('/api/playlist/switch', { playlistItemId: videoId });
+      await request.post('/playlist/switch', { playlistItemId: videoId });
       if (currentVideoId.value !== -1) {
         // Remove the currently playing video if it is not the same as the videoId
         if (currentVideoId.value !== videoId){

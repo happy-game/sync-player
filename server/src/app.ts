@@ -14,7 +14,10 @@ const server = createServer(app);
 // base middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors());
+app.use(cors({
+  credentials: true,
+  origin: true  // 或者指定具体的前端域名
+}));
 app.use(cookieParser());
 
 // routes

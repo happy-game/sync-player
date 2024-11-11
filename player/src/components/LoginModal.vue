@@ -82,6 +82,7 @@
 import { ref, computed } from 'vue';
 import { useUserStore } from '../stores/user';
 import { env } from '../config/env';
+import { updateAxiosBaseUrl } from '@/utils/axios';
 
 const props = defineProps<{
   show: boolean
@@ -119,17 +120,22 @@ const defaultWsBaseUrl = computed(() => {
 const handleSubmit = async () => {
   try {
     // 使用实际输入的值或默认值
-    const finalApiBaseUrl = apiBaseUrl.value || defaultApiBaseUrl;
-    const finalWsBaseUrl = wsBaseUrl.value || defaultWsBaseUrl.value;
+    // const finalApiBaseUrl = apiBaseUrl.value || defaultApiBaseUrl;
+    // const finalWsBaseUrl = wsBaseUrl.value || defaultWsBaseUrl.value;
+    // 判断是否为空，如果为空，则不设置cookie
+    if (apiBaseUrl.value) {
+      const finalApiBaseUrl = apiBaseUrl.value;
+      const finalWsBaseUrl = wsBaseUrl.value || defaultWsBaseUrl.value;
+      document.cookie = `urlConfig=${JSON.stringify({
+        apiBaseUrl: finalApiBaseUrl,
+        wsBaseUrl: finalWsBaseUrl,
+      })}; path=/`;
+      updateAxiosBaseUrl(finalApiBaseUrl);
+    }
+
+    
     
     await userStore.login(username.value, roomName.value);
-
-    // 保存 URL 配置到 cookies
-    document.cookie = `urlConfig=${JSON.stringify({
-      apiBaseUrl: finalApiBaseUrl,
-      wsBaseUrl: finalWsBaseUrl,
-    })}; path=/`;
-
     emit('close');
   } catch (error) {
     alert('登录失败，请重试');
