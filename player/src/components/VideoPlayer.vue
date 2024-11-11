@@ -18,6 +18,7 @@ import videojs from 'video.js';
 import type Player from 'video.js/dist/types/player';
 import 'video.js/dist/video-js.min.css'
 import { usePlaylistStore } from '@/stores/playlist';
+import { usePlayerStore } from '@/stores/player';
 
 import logger from '@/utils/logger';
 import { wsManager } from '@/utils/websocket';
@@ -37,6 +38,7 @@ let current_video_id = 0;
 const syncThreshold = 1;
 
 const playlistStore = usePlaylistStore();
+const playerStore = usePlayerStore();
 
 function initPlayer() {
 	const options = {
@@ -178,6 +180,12 @@ watch(() => playlistStore.playlistChanged, () => {
   }
 });
 
+watch(() => playerStore.currentSource, (newSource) => {
+  if (newSource && player) {
+    handleSourceChange(newSource)
+  }
+})
+
 onMounted(() => {
 	initPlayer();
 	wsManager.subscribe('updateTime', handleUpdateTime);
@@ -208,6 +216,30 @@ async function handleUpdatePause(data: any) {
     } else {
       player?.play();
     }
+  }
+}
+
+// 添加一个处理切换视频源的函数
+async function handleSourceChange(newSource: string) {
+  logger.info('切换视频源:', newSource)
+  if (player) {
+    // 关闭同步
+    enable_sync = false;
+    please_enable_sync = true;
+    const currentTime = player.currentTime()
+    const paused = player.paused()
+    
+    player.src({
+      src: newSource,
+      type: 'video/mp4'
+    })
+    
+    player.one('loadedmetadata', () => {
+      player?.currentTime(currentTime)
+      if (!paused) {
+        player?.play()
+      }
+    })
   }
 }
 </script>
