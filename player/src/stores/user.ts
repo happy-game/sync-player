@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import axios from 'axios';
+import request, { updateAxiosBaseUrl } from '@/utils/axios';
 import logger from '@/utils/logger';
 import { wsManager } from '@/utils/websocket';
 
@@ -24,7 +24,7 @@ export const useUserStore = defineStore('user', () => {
 
   async function fetchOnlineUsers() {
     try {
-      const response = await axios.get(`api/room/queryOnlineUsers?roomId=${roomId.value}`);
+      const response = await request.get(`room/queryOnlineUsers?roomId=${roomId.value}`);
       updateUserList(response.data);
     } catch (error) {
       logger.error('获取在线用户列表失败:', error);
@@ -43,26 +43,26 @@ export const useUserStore = defineStore('user', () => {
     
     try {
       try {
-        const userResponse = await axios.get(`api/user/query?username=${newUsername}`);
+        const userResponse = await request.get(`user/query?username=${newUsername}`);
         queryUserId = userResponse.data.id;
       } catch (error) {
-        const createUserResponse = await axios.post('api/user/create', {
+        const createUserResponse = await request.post('user/create', {
           username: newUsername,
         });
         queryUserId = createUserResponse.data.id;
       }
 
       try {
-        const roomResponse = await axios.get(`api/room/query?name=${newRoomName}`);
+        const roomResponse = await request.get(`room/query?name=${newRoomName}`);
         queryRoomId = roomResponse.data.id;
       } catch (error) {
-        const createRoomResponse = await axios.post('api/room/create', {
+        const createRoomResponse = await request.post('room/create', {
           name: newRoomName,
         });
         queryRoomId = createRoomResponse.data.id;
       }
 
-      const joinRoomResponse = await axios.post('api/room/join', {
+      const joinRoomResponse = await request.post('room/join', {
         userId: queryUserId,
         roomId: queryRoomId,
       });
@@ -99,7 +99,11 @@ export const useUserStore = defineStore('user', () => {
         userId.value = data.userId;
         roomId.value = data.roomId;
         
-        connectWebSocket();
+        // initAxios();
+        if (userId.value && roomId.value) {
+          updateAxiosBaseUrl();
+          connectWebSocket();
+        }
         return true;
       } catch (error) {
         logger.error('Failed to parse user info from cookie:', error);

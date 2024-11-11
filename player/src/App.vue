@@ -5,6 +5,7 @@ import LoginModal from './components/LoginModal.vue';
 import Playlist from './components/Playlist.vue';
 import AddPlaylist from './components/AddPlaylist.vue';
 import Users from './components/Users.vue';
+import Playing from './components/Playing.vue';
 import { useUserStore } from './stores/user';
 import logger from './utils/logger';
 
@@ -25,13 +26,13 @@ onMounted(() => {
 
 <template>
   <div class="min-h-screen bg-background">
-    <header class="border-b">
+    <!-- <header class="border-b">
       <div v-if="userStore.username" class="px-4 flex items-center justify-between h-14">
         <div class="text-sm text-muted-foreground">
           欢迎, {{ userStore.username }} | 房间: {{ userStore.roomName }}
         </div>
       </div>
-    </header>
+    </header> -->
 
     <main class="h-[calc(100vh-3.5rem)]">
       <div class="flex flex-col md:grid md:grid-cols-4 h-full">
@@ -39,8 +40,9 @@ onMounted(() => {
           <div class="flex-1">
             <VideoPlayer class="w-full h-full" />
           </div>
-          <div class="p-4">
+          <div class="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
             <AddPlaylist />
+            <Playing />
           </div>
         </div>
         
