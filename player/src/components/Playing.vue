@@ -21,7 +21,7 @@
                 <SelectItem 
                   v-for="(source, index) in playlistStore.currentVideoItem?.VideoSources" 
                   :key="source.id" 
-                  :value="index"
+                  :value="String(index)"
                 >
                   {{ source.url }}
                 </SelectItem>
@@ -85,7 +85,7 @@ import {
 import { usePlayerStore } from '@/stores/player'
 
 const playlistStore = usePlaylistStore();
-const selectedSourceIndex = ref(0);
+const selectedSourceIndex = ref('0');
 const newSource = ref('');
 const playerStore = usePlayerStore();
 
@@ -116,9 +116,7 @@ const currentSource = computed(() => {
 // 监听当前视频变化,更新选中的源
 watch(() => playlistStore.currentVideoId, (newId) => {
   if (newId && playlistStore.currentVideoItem) {
-    // 重置为第一个源
-    selectedSourceIndex.value = 0;
-    // 通知播放器更新源
+    selectedSourceIndex.value = '0';
     if (playlistStore.currentVideoItem.VideoSources.length > 0) {
       playerStore.updateSource(playlistStore.currentVideoItem.VideoSources[0].url);
     }
@@ -127,9 +125,10 @@ watch(() => playlistStore.currentVideoId, (newId) => {
 
 // 监听选中源的变化
 watch(selectedSourceIndex, (newIndex) => {
-  if (playlistStore.currentVideoItem?.VideoSources[newIndex]) {
-    const newSource = playlistStore.currentVideoItem.VideoSources[newIndex].url;
-    logger.info('选中的视频源索引:', newIndex, '源:', newSource);
+  const index = parseInt(newIndex);
+  if (playlistStore.currentVideoItem?.VideoSources[index]) {
+    const newSource = playlistStore.currentVideoItem.VideoSources[index].url;
+    logger.info('选中的视频源索引:', index, '源:', newSource);
     playerStore.updateSource(newSource);
   }
 });
