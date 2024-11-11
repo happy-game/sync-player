@@ -1,0 +1,37 @@
+name: Deploy player to Cloudflare
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 'lts/*' 
+
+    - name: Install dependencies
+      working-directory: ./player
+      run: npm install
+
+    - name: Build project
+      working-directory: ./player
+      run: npm run build
+    # TODO: check if the project exists, if not create it
+    - name: Deploy to Cloudflare
+      working-directory: ./player
+      env:
+        CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        CLOUDFLARE_PROJECT_NAME: ${{ secrets.CLOUDFLARE_PROJECT_NAME }}
+      run: |
+        npm install -g wrangler
+        wrangler pages deploy dist/ --project-name=${{ env.CLOUDFLARE_PROJECT_NAME }}
