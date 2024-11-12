@@ -19,6 +19,7 @@
     "@types/sequelize": "^4.28.20",
     "@types/winston": "^2.4.4",
     "@types/ws": "^8.5.12",
+    "@vercel/ncc": "^0.38.2",
     "nodemon": "^3.1.7",
     "ts-node": "^10.9.2",
     "typescript": "^5.6.3"
@@ -26,6 +27,7 @@
   "scripts": {
     "start": "node dist/app.js",
     "dev": "nodemon src/app.ts",
-    "build": "tsc"
+    "build": "tsc",
+    "ncc": "ncc build src/app.ts -o dist"
   }
 }
