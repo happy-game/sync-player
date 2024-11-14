@@ -1,9 +1,10 @@
 import type { ISyncManager, ISyncMessage, SyncEventHandler, SyncConfig } from '@/types/sync';
 import { WebSocketAdapter } from './adapters/websocket';
+import { SSEAdapter } from './adapters/sse';
 import logger from '@/utils/logger';
 
 export class SyncManager implements ISyncManager {
-  private adapter: WebSocketAdapter | null = null;
+  private adapter: WebSocketAdapter | SSEAdapter | null = null;
   private config: SyncConfig;
   private messageHandlers: Map<string, Set<SyncEventHandler>> = new Map();
   private reconnectTimer: number | null = null;
@@ -28,7 +29,7 @@ export class SyncManager implements ISyncManager {
     
     // 设置消息处理
     this.adapter.onMessage((data) => {
-      logger.debug('收到消息:', data);
+      logger.debug('收到消息 sse:', data);
       const handlers = this.messageHandlers.get(data.type);
       if (handlers) {
         handlers.forEach(handler => handler(data));
@@ -70,23 +71,18 @@ export class SyncManager implements ISyncManager {
     // 发送认证消息
     if (userId && roomId) {
       this.adapter.connect(url, userId, roomId);
-      // this.send({
-      //   type: 'auth',
-      //   payload: { userId, roomId }
-      // });
     }
 
     // 设置心跳
-    this.setupHeartbeat();
+    // this.setupHeartbeat();
   }
 
-  private createAdapter(): WebSocketAdapter {
+  private createAdapter(): WebSocketAdapter | SSEAdapter {
     switch (this.config.protocol) {
       case 'websocket':
         return new WebSocketAdapter();
       case 'sse':
-        // TODO: 添加 SSE 适配器
-        throw new Error(`不支持的协议: ${this.config.protocol}`);
+        return new SSEAdapter(this.config.url);
       default:
         throw new Error(`不支持的协议: ${this.config.protocol}`);
     }
@@ -152,9 +148,8 @@ export class SyncManager implements ISyncManager {
 
 // 创建单例
 export const syncManager = new SyncManager({
-  // url: import.meta.env.VITE_SYNC_URL || 'ws://localhost:3000/socket',
-  url: 'ws://localhost:5173/socket',
-  protocol: 'websocket' as 'websocket' | 'sse',
+  url: import.meta.env.VITE_SYNC_URL || 'ws://localhost:3000/socket',
+  protocol: 'sse' as 'websocket' | 'sse',
   reconnectInterval: 5000,
   heartbeatInterval: 10000
 }); 
