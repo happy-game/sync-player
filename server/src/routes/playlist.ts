@@ -3,7 +3,8 @@ import { addItemToPlaylist, queryPlaylistItems, deletePlaylistItem, clearPlaylis
 import { getRoomPlayStatus, updateRoomPlayStatus, createRoomPlayStatus } from '../db/queries/roomPlayStatus';
 import { PlayStatus } from '../models/PlaylistItem';
 import logger from '../config/logger';
-import * as Wss from '../websocket';  
+import { getSyncManager } from '../sync/syncManager';
+import { SyncMessage } from '../sync/types';
 
 const router = Router();
 
@@ -21,9 +22,10 @@ router.post('/add', async (req: Request, res: Response) => {
   try {
     const playlistItemId = await addItemToPlaylist(roomId, title, urls);
 
-    const data = JSON.stringify({ type: 'updatePlaylist' });
-    Wss.broadcast(roomId, data, [userId]);
-    
+    const data: SyncMessage = {
+      type: 'updatePlaylist'
+    };
+    getSyncManager().broadcast(roomId, data, [userId]);
     res.json({ 
       message: 'Item added to playlist',
       playlistItemId
@@ -91,8 +93,10 @@ router.delete('/delete', async (req: Request, res: Response) => {
     // delete playlist item and its video sources
     await deletePlaylistItem(playlistItemId);
 
-    const data = JSON.stringify({ type: 'updatePlaylist' });
-    Wss.broadcast(roomId, data, [userId]);
+    const data: SyncMessage = {
+      type: 'updatePlaylist'
+    };
+    getSyncManager().broadcast(roomId, data, [userId]);
     
     res.json({ message: 'Item deleted from playlist' });
   } catch (error) {
@@ -115,8 +119,10 @@ router.delete('/clear', async (req: Request, res: Response) => {
     // clear playlist items and their video sources
     await clearPlaylist(roomId);
 
-    const data = JSON.stringify({ type: 'updatePlaylist' });
-    Wss.broadcast(roomId, data, [userId]);
+    const data: SyncMessage = {
+      type: 'updatePlaylist'
+    };
+    getSyncManager().broadcast(roomId, data, [userId]);
     
     res.json({ message: 'Playlist cleared' });
   } catch (error) {
@@ -145,8 +151,10 @@ router.post('/updateOrder', async (req: Request, res: Response) => {
     });
     
 
-    const data = JSON.stringify({ type: 'updatePlaylist' });
-    Wss.broadcast(roomId, data, [userId]);
+    const data: SyncMessage = {
+      type: 'updatePlaylist'
+    };
+    getSyncManager().broadcast(roomId, data, [userId]);
     
     res.json({ message: 'Order updated' });
   }
@@ -188,10 +196,10 @@ router.post('/switch', async (req: Request, res: Response) => {
       await createRoomPlayStatus(roomId, false, 0, Date.now(), playlistItemId);
     }
 
-    const data = JSON.stringify({ type: 'updatePlaylist' });
-    if (broadcast){
-      Wss.broadcast(roomId, data, [userId]);
-    }
+    const data: SyncMessage = {
+      type: 'updatePlaylist'
+    };
+    getSyncManager().broadcast(roomId, data, [userId]);
     
     res.json({ message: 'Playlist item switched' });
   } catch (error) {

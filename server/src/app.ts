@@ -7,6 +7,7 @@ import router from './routes';
 import { initDatabase } from './db/init';
 import logger from './config/logger';
 import env from './config/env';
+import sseRouter from './sync/adapters/sse';
 
 const app = express();
 const server = createServer(app);
@@ -22,9 +23,11 @@ app.use(cookieParser());
 
 // routes
 app.use('/api', router);
+app.use('/sse', sseRouter);
 
 // init websocket
-initSyncManager(server);
+// initSyncManager(server, 'sse');
+initSyncManager(server, 'websocket')
 
 // init database before start server
 initDatabase().then(() => {
