@@ -8,6 +8,7 @@ import { initDatabase } from './db/init';
 import logger from './config/logger';
 import env from './config/env';
 import sseRouter from './sync/adapters/sse';
+import path from 'path';
 
 const app = express();
 const server = createServer(app);
@@ -24,6 +25,9 @@ app.use(cookieParser());
 // routes
 app.use('/api', router);
 app.use('/sse', sseRouter);
+
+// serve static files for other routes
+app.use(express.static(path.join(__dirname, 'web')));
 
 // init sync manager
 switch (env.SYNC_PROTOCOL) {
@@ -47,4 +51,4 @@ initDatabase().then(() => {
   process.exit(1);
 });
 
-export { app, server }; 
+export { app, server };
