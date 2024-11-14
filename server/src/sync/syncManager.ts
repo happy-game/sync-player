@@ -1,6 +1,7 @@
 import { Server } from 'http';
 import { ISyncManager, ISyncAdapter, SyncMessage } from './types';
 import { WebSocketAdapter } from './adapters/websocket';
+import { SSEAdapter } from './adapters/sse';
 import logger from '../config/logger';
 
 export class SyncManager implements ISyncManager {
@@ -14,12 +15,13 @@ export class SyncManager implements ISyncManager {
     });
   }
 
-  private createAdapter(server: Server, protocol: string): ISyncAdapter {
+  private createAdapter(server: Server, protocol: 'websocket' | 'sse'): ISyncAdapter {
+    logger.info(`Creating adapter for protocol: ${protocol}`);
     switch (protocol) {
       case 'websocket':
         return new WebSocketAdapter(server);
       case 'sse':
-        throw new Error('SSE adapter not implemented yet');
+        return new SSEAdapter();
       default:
         throw new Error(`Unsupported protocol: ${protocol}`);
     }
@@ -38,11 +40,10 @@ export class SyncManager implements ISyncManager {
   }
 }
 
-// 创建单例
 let syncManager: SyncManager;
 
-export function initSyncManager(server: Server): SyncManager {
-  syncManager = new SyncManager(server);
+export function initSyncManager(server: Server, protocol: 'websocket' | 'sse' = 'websocket'): SyncManager {
+  syncManager = new SyncManager(server, protocol);
   return syncManager;
 }
 

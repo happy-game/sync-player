@@ -26,8 +26,8 @@ app.use('/api', router);
 app.use('/sse', sseRouter);
 
 // init websocket
-// initSyncManager(server, 'sse');
-initSyncManager(server, 'websocket')
+initSyncManager(server, 'sse');
+// initSyncManager(server, 'websocket')
 
 // init database before start server
 initDatabase().then(() => {

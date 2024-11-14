@@ -5,7 +5,6 @@ import { getRoomPlayStatus, updateRoomPlayStatus, createRoomPlayStatus } from '.
 
 const router = Router();
 
-
 router.post('/updateTime', async (req: Request, res: Response) => {
     // update playStatus in server
     const cookiesJson = JSON.parse(req.cookies.userInfo);

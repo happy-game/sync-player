@@ -2,6 +2,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { Server } from 'http';
 import { ISyncAdapter, SyncEventHandler, SyncMessage } from '../types';
 import logger from '../../config/logger';
+import { setMemberOnline } from '../../db/queries/roomMember';
 
 interface WebSocketMap {
   [roomId: number]: {
@@ -54,6 +55,7 @@ export class WebSocketAdapter implements ISyncAdapter {
       this.connections[roomId] = {};
     }
     this.connections[roomId][userId] = ws;
+    setMemberOnline(roomId, userId, true);
     logger.info(`User ${userId} connected to room ${roomId}`);
   }
 
@@ -62,6 +64,7 @@ export class WebSocketAdapter implements ISyncAdapter {
       for (const userId in this.connections[roomId]) {
         if (this.connections[roomId][userId] === ws) {
           delete this.connections[roomId][userId];
+          setMemberOnline(parseInt(roomId), parseInt(userId), false)
           logger.info(`User ${userId} disconnected from room ${roomId}`);
           return;
         }
