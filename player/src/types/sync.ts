@@ -18,7 +18,7 @@ export interface SyncConfig {
 // 定义适配器接口
 export interface ISyncAdapter {
   // 连接管理
-  connect(url: string): void;
+  connect(url: string, userId: number, roomId: number): void;
   disconnect(): void;
   
   // 消息发送

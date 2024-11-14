@@ -26,7 +26,7 @@ export function initWebSocket(server: Server) {
                 const data = JSON.parse(message.toString());
                 
                 if (data.type === 'auth') { // TODO: Implement real authentication
-                    const { userId, roomId } = data;
+                    const { userId, roomId } = data.payload;
                     if (userId && roomId) {
                         if (!connections[roomId]) { // Create a new room
                             connections[roomId] = {};

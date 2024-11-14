@@ -7,11 +7,20 @@ export class WebSocketAdapter implements ISyncAdapter {
   private closeHandler: (() => void) | null = null;
   private errorHandler: ((error: any) => void) | null = null;
 
-  connect(url: string): void {
+  connect(url: string, userId: number, roomId: number): void {
     this.ws = new WebSocket(url);
     
     this.ws.onopen = () => {
       logger.info('WebSocket连接已建立');
+      if (this.ws) {
+        this.ws.send(JSON.stringify({
+          type: 'auth',
+          payload: {
+            userId,
+            roomId
+          }
+        }));
+      }
     };
 
     this.ws.onmessage = (event) => {

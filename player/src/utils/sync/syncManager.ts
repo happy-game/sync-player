@@ -65,14 +65,15 @@ export class SyncManager implements ISyncManager {
       }
     }
 
-    this.adapter.connect(url);
+    // this.adapter.connect(url);
 
     // 发送认证消息
     if (userId && roomId) {
-      this.send({
-        type: 'auth',
-        payload: { userId, roomId }
-      });
+      this.adapter.connect(url, userId, roomId);
+      // this.send({
+      //   type: 'auth',
+      //   payload: { userId, roomId }
+      // });
     }
 
     // 设置心跳
