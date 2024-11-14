@@ -34,8 +34,8 @@ router.post('/create', async (req: Request, res: Response): Promise<void> => {
 });
 
 router.get('/query', async (req: Request, res: Response): Promise<void> => {
-  const { name } = req.query;
   try {
+    const { name } = req.query;
     const room = await getRoomByName(name as string);
     if (!room) {
     res.status(404).json({ error: 'Room not found' });
@@ -127,8 +127,8 @@ router.post('/leave', async (req: Request, res: Response): Promise<void> => {
 });
 
 router.get('/queryOnlineUsers', async (req: Request, res: Response) => {
-  const roomId = Number(req.query.roomId);
   try {
+    const roomId = Number(req.query.roomId);
     const members = await getOnlineUsers(roomId);
     res.json(members);
   } catch (error) {

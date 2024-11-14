@@ -9,17 +9,17 @@ import { SyncMessage } from '../sync/types';
 const router = Router();
 
 router.post('/add', async (req: Request, res: Response) => {
-  const { title, urls } = req.body;
-
-  const cookiesJson = JSON.parse(req.cookies.userInfo);
-  const roomId = cookiesJson.roomId;
-  const userId = cookiesJson.userId;
-  // validate roomId, title, urls
-  if (!roomId || !title || !urls) {
-    res.status(400).json({ error: 'Invalid request body' });
-    return;
-  }
   try {
+    const { title, urls } = req.body;
+
+    const cookiesJson = JSON.parse(req.cookies.userInfo);
+    const roomId = cookiesJson.roomId;
+    const userId = cookiesJson.userId;
+    // validate roomId, title, urls
+    if (!roomId || !title || !urls) {
+      res.status(400).json({ error: 'Invalid request body' });
+      return;
+    }
     const playlistItemId = await addItemToPlaylist(roomId, title, urls);
 
     const data: SyncMessage = {
@@ -30,38 +30,39 @@ router.post('/add', async (req: Request, res: Response) => {
       message: 'Item added to playlist',
       playlistItemId
     });
-  } catch (error) {
+  }
+  catch (error) {
+    logger.error('Failed to add playlist item:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
 
 router.get('/query', async (req: Request, res: Response) => {
-  // const roomId = parseInt(req.query.roomId as string);
-  const cookiesJson = JSON.parse(req.cookies.userInfo);
-  const roomId = cookiesJson.roomId;
-  if (isNaN(roomId)) {
-    res.status(400).json({ error: 'Invalid roomId' });
-    return;
-  }
-
-  let playlistItemId: number | undefined;
-  let playStatus: PlayStatus | undefined;
-  if (req.query.playlistItemId) {
-    playlistItemId = parseInt(req.query.playlistItemId as string);
-    if (isNaN(playlistItemId)) {
-      res.status(400).json({ error: 'Invalid playlistItemId' });
-      return;
-    }
-  }
-  if (req.query.playStatus) {
-    playStatus = req.query.playStatus as PlayStatus;
-    if (!Object.values(PlayStatus).includes(playStatus)) {
-      res.status(400).json({ error: 'Invalid playStatus' });
-      return;
-    }
-  }
-
   try {
+    const cookiesJson = JSON.parse(req.cookies.userInfo);
+    const roomId = cookiesJson.roomId;
+    if (isNaN(roomId)) {
+      res.status(400).json({ error: 'Invalid roomId' });
+      return;
+    }
+
+    let playlistItemId: number | undefined;
+    let playStatus: PlayStatus | undefined;
+    if (req.query.playlistItemId) {
+      playlistItemId = parseInt(req.query.playlistItemId as string);
+      if (isNaN(playlistItemId)) {
+        res.status(400).json({ error: 'Invalid playlistItemId' });
+        return;
+      }
+    }
+    if (req.query.playStatus) {
+      playStatus = req.query.playStatus as PlayStatus;
+      if (!Object.values(PlayStatus).includes(playStatus)) {
+        res.status(400).json({ error: 'Invalid playStatus' });
+        return;
+      }
+    }
+
     // if didn't specify  playStatus, query PLAYING items and NEW items
     if (!playStatus) {
       const playingItems = await queryPlaylistItems(roomId, undefined, PlayStatus.PLAYING);
@@ -73,23 +74,25 @@ router.get('/query', async (req: Request, res: Response) => {
       const items = await queryPlaylistItems(roomId, playlistItemId, playStatus);
       res.json(items);
     }
-  } catch (error) {
+  }
+  catch (error) {
+    logger.error('Failed to query playlist items:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
 
 router.delete('/delete', async (req: Request, res: Response) => {
-  const { playlistItemId } = req.body;
-  const cookiesJson = JSON.parse(req.cookies.userInfo);
-  const roomId = cookiesJson.roomId;
-  const userId = cookiesJson.userId;
-
-  if (!playlistItemId) {
-    res.status(400).json({ error: 'Invalid request body' });
-    return;
-  }
-
   try {
+    const { playlistItemId } = req.body;
+    const cookiesJson = JSON.parse(req.cookies.userInfo);
+    const roomId = cookiesJson.roomId;
+    const userId = cookiesJson.userId;
+
+    if (!playlistItemId) {
+      res.status(400).json({ error: 'Invalid request body' });
+      return;
+    }
+
     // delete playlist item and its video sources
     await deletePlaylistItem(playlistItemId);
 
@@ -99,23 +102,24 @@ router.delete('/delete', async (req: Request, res: Response) => {
     getSyncManager().broadcast(roomId, data, [userId]);
     
     res.json({ message: 'Item deleted from playlist' });
-  } catch (error) {
+  }
+  catch (error) {
+    logger.error('Failed to delete playlist item:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
 
 router.delete('/clear', async (req: Request, res: Response) => {
-  // const { roomId } = req.body;
-  const cookiesJson = JSON.parse(req.cookies.userInfo);
-  const roomId = cookiesJson.roomId;
-  const userId = cookiesJson.userId;
-
-  if (isNaN(roomId)) {
-    res.status(400).json({ error: 'Invalid roomId' });
-    return;
-  }
-
   try {
+    const cookiesJson = JSON.parse(req.cookies.userInfo);
+    const roomId = cookiesJson.roomId;
+    const userId = cookiesJson.userId;
+
+    if (isNaN(roomId)) {
+      res.status(400).json({ error: 'Invalid roomId' });
+      return;
+    }
+
     // clear playlist items and their video sources
     await clearPlaylist(roomId);
 
@@ -125,23 +129,25 @@ router.delete('/clear', async (req: Request, res: Response) => {
     getSyncManager().broadcast(roomId, data, [userId]);
     
     res.json({ message: 'Playlist cleared' });
-  } catch (error) {
+  }
+  catch (error) {
     logger.error('Failed to clear playlist:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
 
 router.post('/updateOrder', async (req: Request, res: Response) => {
-  const { orderIndexList } = req.body;  // array of { playlistItemId: number, orderIndex: number }
-  const cookiesJson = JSON.parse(req.cookies.userInfo);
-  const roomId = cookiesJson.roomId;
-  const userId = cookiesJson.userId;
-
-  if (!Array.isArray(orderIndexList)) {
-    res.status(400).json({ error: 'Invalid request body' });
-    return;
-  }
   try {
+    const { orderIndexList } = req.body;  // array of { playlistItemId: number, orderIndex: number }
+    const cookiesJson = JSON.parse(req.cookies.userInfo);
+    const roomId = cookiesJson.roomId;
+    const userId = cookiesJson.userId;
+
+    if (!Array.isArray(orderIndexList)) {
+      res.status(400).json({ error: 'Invalid request body' });
+      return;
+    }
+
     orderIndexList.forEach((item: any) => {
       if (typeof item.playlistItemId !== 'number' || typeof item.orderIndex !== 'number') {
         res.status(400).json({ error: 'Invalid request body' });
@@ -165,18 +171,18 @@ router.post('/updateOrder', async (req: Request, res: Response) => {
 });
 
 router.post('/switch', async (req: Request, res: Response) => {
-  const cookiesJson = JSON.parse(req.cookies.userInfo);
-  const roomId = cookiesJson.roomId;
-  const userId = cookiesJson.userId;
-  const { playlistItemId } = req.body;
+  try {
+    const cookiesJson = JSON.parse(req.cookies.userInfo);
+    const roomId = cookiesJson.roomId;
+    const userId = cookiesJson.userId;
+    const { playlistItemId } = req.body;
 
-  let broadcast = true;
-  if (!playlistItemId) {
-    res.status(400).json({ error: 'Invalid request body' });
-    return;
-  }
+    let broadcast = true;
+    if (!playlistItemId) {
+      res.status(400).json({ error: 'Invalid request body' });
+      return;
+    }
 
-  try { 
     // set all playing items to finished and the new item to playing
     const playingItems = await queryPlaylistItems(roomId, undefined, PlayStatus.PLAYING);
     playingItems.forEach(async (item) => {
