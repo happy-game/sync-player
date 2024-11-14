@@ -196,10 +196,12 @@ router.post('/switch', async (req: Request, res: Response) => {
       await createRoomPlayStatus(roomId, false, 0, Date.now(), playlistItemId);
     }
 
-    const data: SyncMessage = {
-      type: 'updatePlaylist'
-    };
-    getSyncManager().broadcast(roomId, data, [userId]);
+    if (broadcast) {
+      const data: SyncMessage = {
+        type: 'updatePlaylist'
+      };
+      getSyncManager().broadcast(roomId, data, [userId]);
+    }
     
     res.json({ message: 'Playlist item switched' });
   } catch (error) {
