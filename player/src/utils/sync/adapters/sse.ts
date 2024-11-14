@@ -21,6 +21,7 @@ export class SSEAdapter implements ISyncAdapter {
     if (!url) {
       throw new Error('URL is not initialized');
     }
+    logger.debug('连接SSE:', url);
     this.url = url;
     this.userId = userId;
     this.roomId = roomId;

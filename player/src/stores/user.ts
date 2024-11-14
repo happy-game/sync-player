@@ -4,6 +4,7 @@ import request, { updateAxiosBaseUrl } from '@/utils/axios';
 import logger from '@/utils/logger';
 // import { wsManager } from '@/utils/websocket';
 import { syncManager } from '@/utils/sync/syncManager';
+import { env } from '../config/env';
 
 export interface UserListItem {
   id: number;
@@ -32,8 +33,36 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-  function connectWebSocket() {
+  async function connectWebSocket() {
     // wsManager.connect(userId.value, roomId.value);
+    const response = await request.get('sync/protocol');
+
+    const urlConfig = document.cookie
+    .split('; ')
+    .find(row => row.startsWith('urlConfig='));
+  
+    let baseURL = env.API_BASE_URL;
+    
+    if (urlConfig) {
+      try {
+        const config = JSON.parse(decodeURIComponent(urlConfig.split('=')[1]));
+        if (config.apiBaseUrl) {
+          baseURL = config.apiBaseUrl;
+          logger.info('Using API base URL from cookie:', baseURL);
+        }
+      } catch (error) {
+        logger.error('Failed to parse URL config from cookie:', error);
+      }
+    }
+
+    if (response.data.protocol === 'websocket') {
+      logger.info('Using WebSocket protocol, setting baseURL:', baseURL.replace('http', 'ws').replace('api', 'socket'));
+      syncManager.setProtocol('websocket', baseURL.replace('http', 'ws').replace('api', 'socket'));
+    }
+    else if (response.data.protocol === 'sse') {
+      logger.info('Using SSE protocol, setting baseURL:', baseURL.replace('api', 'sse'));
+      syncManager.setProtocol('sse', baseURL.replace('api', 'sse'));
+    }
     syncManager.connect(userId.value, roomId.value);
     // 连接后立即获取在线用户列表
     fetchOnlineUsers();

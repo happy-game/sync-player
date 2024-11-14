@@ -16,6 +16,11 @@ export class SyncManager implements ISyncManager {
     this.config = config;
   }
 
+  setProtocol(protocol: 'websocket' | 'sse', url: string): void {
+    this.config.protocol = protocol;
+    this.config.url = url;
+  }
+
   connect(userId: number | null, roomId: number | null): void {
     this.currentUserId = userId;
     this.currentRoomId = roomId;
@@ -29,7 +34,7 @@ export class SyncManager implements ISyncManager {
     
     // 设置消息处理
     this.adapter.onMessage((data) => {
-      logger.debug('收到消息 sse:', data);
+      logger.debug('收到消息:', data);
       const handlers = this.messageHandlers.get(data.type);
       if (handlers) {
         handlers.forEach(handler => handler(data));
@@ -48,29 +53,29 @@ export class SyncManager implements ISyncManager {
     });
 
     // 连接
-    const urlConfig = document.cookie
-      .split('; ')
-      .find(row => row.startsWith('urlConfig='));
+    // const urlConfig = document.cookie
+    //   .split('; ')
+    //   .find(row => row.startsWith('urlConfig='));
     
-    let url = this.config.url;
-    if (urlConfig) {
-      try {
-        const config = JSON.parse(decodeURIComponent(urlConfig.split('=')[1]));
-        if (this.config.protocol === 'websocket' && config.wsBaseUrl) {
-          url = config.wsBaseUrl;
-        } else if (this.config.protocol === 'sse' && config.sseBaseUrl) {
-          url = config.sseBaseUrl;
-        }
-      } catch (error) {
-        logger.error('解析URL配置失败:', error);
-      }
-    }
+    // let url = this.config.url;
+    // if (urlConfig) {
+    //   try {
+    //     const config = JSON.parse(decodeURIComponent(urlConfig.split('=')[1]));
+    //     if (this.config.protocol === 'websocket' && config.wsBaseUrl) {
+    //       url = config.wsBaseUrl;
+    //     } else if (this.config.protocol === 'sse' && config.sseBaseUrl) {
+    //       url = config.sseBaseUrl;
+    //     }
+    //   } catch (error) {
+    //     logger.error('解析URL配置失败:', error);
+    //   }
+    // }
 
     // this.adapter.connect(url);
 
     // 发送认证消息
     if (userId && roomId) {
-      this.adapter.connect(url, userId, roomId);
+      this.adapter.connect(this.config.url, userId, roomId);
     }
 
     // 设置心跳
