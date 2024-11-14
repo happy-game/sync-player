@@ -2,7 +2,7 @@ import express from 'express';
 import { createServer } from 'http';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import { initWebSocket } from './websocket';
+import { initSyncManager } from './sync/syncManager';
 import router from './routes';
 import { initDatabase } from './db/init';
 import logger from './config/logger';
@@ -24,7 +24,7 @@ app.use(cookieParser());
 app.use('/api', router);
 
 // init websocket
-initWebSocket(server);
+initSyncManager(server);
 
 // init database before start server
 initDatabase().then(() => {

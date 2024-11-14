@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import logger from '../config/logger';
-import * as Wss from '../websocket';
+import { getSyncManager } from '../sync/syncManager';
 import { getRoomPlayStatus, updateRoomPlayStatus, createRoomPlayStatus } from '../db/queries/roomPlayStatus';
 
 const router = Router();
@@ -25,9 +25,11 @@ router.post('/updateTime', async (req: Request, res: Response) => {
             await updateRoomPlayStatus(roomId, { paused, time, timestamp, videoId });
         }
         
-        // use websocket to broadcast the play status to all users in the room
-        const data = JSON.stringify({ type: 'updateTime', roomId, userId, paused, time, timestamp, videoId });
-        Wss.broadcast(roomId, data, [userId]);
+        const syncManager = getSyncManager();
+        syncManager.broadcast(roomId, {
+            type: 'updateTime',
+            payload: { roomId, userId, paused, time, timestamp, videoId }
+        }, [userId]);
 
         res.json({ message: 'Play status updated' });
     } catch (error) {
@@ -84,9 +86,11 @@ router.post('/updatePause', async (req: Request, res: Response) => {
             await updateRoomPlayStatus(roomId, { paused, timestamp });
         }
 
-        // use websocket to broadcast the play status to all users in the room
-        const data = JSON.stringify({ type: 'updatePause', roomId, userId, paused, timestamp });
-        Wss.broadcast(roomId, data, [userId]);
+        const syncManager = getSyncManager();
+        syncManager.broadcast(roomId, {
+            type: 'updatePause',
+            payload: { roomId, userId, paused, timestamp }
+        }, [userId]);
 
         res.json({ message: 'Play status updated' });
     } catch (error) {
