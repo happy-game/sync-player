@@ -25,9 +25,17 @@ app.use(cookieParser());
 app.use('/api', router);
 app.use('/sse', sseRouter);
 
-// init websocket
-initSyncManager(server, 'sse');
-// initSyncManager(server, 'websocket')
+// init sync manager
+switch (env.SYNC_PROTOCOL) {
+  case 'websocket':
+    initSyncManager(server, 'websocket');
+    break;
+  case 'sse':
+    initSyncManager(server, 'sse');
+    break;
+  default:
+    throw new Error(`Unsupported sync protocol: ${env.SYNC_PROTOCOL}`);
+}
 
 // init database before start server
 initDatabase().then(() => {

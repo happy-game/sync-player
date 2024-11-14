@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import logger from '../config/logger';
 import { getSyncManager } from '../sync/syncManager';
 import { getRoomPlayStatus, updateRoomPlayStatus, createRoomPlayStatus } from '../db/queries/roomPlayStatus';
+import env from '../config/env';
 
 const router = Router();
 
@@ -95,6 +96,16 @@ router.post('/updatePause', async (req: Request, res: Response) => {
     } catch (error) {
         logger.error('Failed to update play status:', error);
         res.status(404).json({ error: 'Play status not found' });
+    }
+});
+
+router.get('/protocol', async (req: Request, res: Response) => {
+    try {
+        res.json({ protocol: env.SYNC_PROTOCOL });
+    }
+    catch (error) {
+        logger.error('Failed to get protocol:', error);
+        res.status(500).json({ message: 'Internal server error' });
     }
 });
 

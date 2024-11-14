@@ -20,6 +20,9 @@ interface EnvConfig {
   MYSQL_DATABASE: string;
   MYSQL_USERNAME: string;
   MYSQL_PASSWORD: string;
+
+  // WebSocket or SSE
+  SYNC_PROTOCOL?: 'websocket' | 'sse';
 }
 
 // get environment variable, use system environment variable first
@@ -42,6 +45,9 @@ export const env: EnvConfig = {
   MYSQL_DATABASE: getEnvValue('MYSQL_DATABASE', 'sync_player'),
   MYSQL_USERNAME: getEnvValue('MYSQL_USERNAME', 'root'),
   MYSQL_PASSWORD: getEnvValue('MYSQL_PASSWORD', 'password'),
+
+  // WebSocket or SSE
+  SYNC_PROTOCOL: getEnvValue('SYNC_PROTOCOL', 'websocket'),
 };
 
 // validate required environment variables
