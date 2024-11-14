@@ -21,7 +21,8 @@ import { usePlaylistStore } from '@/stores/playlist';
 import { usePlayerStore } from '@/stores/player';
 
 import logger from '@/utils/logger';
-import { wsManager } from '@/utils/websocket';
+// import { wsManager } from '@/utils/websocket';
+import { syncManager } from '@/utils/sync/syncManager';
 import request from '@/utils/axios';
 
 interface SyncData {
@@ -188,13 +189,17 @@ watch(() => playerStore.currentSource, (newSource) => {
 
 onMounted(() => {
 	initPlayer();
-	wsManager.subscribe('updateTime', handleUpdateTime);
-  wsManager.subscribe('updatePause', handleUpdatePause);
+	// wsManager.subscribe('updateTime', handleUpdateTime);
+  // wsManager.subscribe('updatePause', handleUpdatePause);
+  syncManager.subscribe('updateTime', handleUpdateTime);
+  syncManager.subscribe('updatePause', handleUpdatePause);
 });
 
 onUnmounted(() => {
-	wsManager.unsubscribe('updateTime', handleUpdateTime);
-  wsManager.unsubscribe('updatePause', handleUpdatePause);
+	// wsManager.unsubscribe('updateTime', handleUpdateTime);
+  // wsManager.unsubscribe('updatePause', handleUpdatePause);
+  syncManager.unsubscribe('updateTime', handleUpdateTime);
+  syncManager.unsubscribe('updatePause', handleUpdatePause);
 });
 
 async function handleUpdateTime(data: any) {

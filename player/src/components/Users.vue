@@ -50,7 +50,8 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { Settings, X, Users } from 'lucide-vue-next'
 import { useUserStore } from '@/stores/user';
-import { wsManager } from '@/utils/websocket';
+// import { wsManager } from '@/utils/websocket';
+import { syncManager } from '@/utils/sync/syncManager';
 import logger from '@/utils/logger';
 
 const userStore = useUserStore();
@@ -63,11 +64,13 @@ const toggleSettings = () => {
 }
 
 onMounted(() => {
-  wsManager.subscribe('updateUserList', handleUpdateUsers);
+  // wsManager.subscribe('updateUserList', handleUpdateUsers);
+  syncManager.subscribe('updateUserList', handleUpdateUsers);
 });
 
 onUnmounted(() => {
-  wsManager.unsubscribe('updateUserList', handleUpdateUsers);
+  // wsManager.unsubscribe('updateUserList', handleUpdateUsers);
+  syncManager.unsubscribe('updateUserList', handleUpdateUsers);
 });
 
 function handleUpdateUsers(data: any) {

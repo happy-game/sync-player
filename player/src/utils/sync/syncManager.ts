@@ -151,8 +151,9 @@ export class SyncManager implements ISyncManager {
 
 // 创建单例
 export const syncManager = new SyncManager({
-  url: import.meta.env.VITE_SYNC_URL || 'ws://localhost:3000/socket',
-  protocol: (import.meta.env.VITE_SYNC_PROTOCOL || 'websocket') as 'websocket' | 'sse',
+  // url: import.meta.env.VITE_SYNC_URL || 'ws://localhost:3000/socket',
+  url: 'ws://localhost:5173/socket',
+  protocol: 'websocket' as 'websocket' | 'sse',
   reconnectInterval: 5000,
   heartbeatInterval: 10000
 }); 

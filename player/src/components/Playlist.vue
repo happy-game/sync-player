@@ -58,7 +58,8 @@ import request from '../utils/axios';
 import { useUserStore } from '../stores/user';
 import { usePlaylistStore } from '../stores/playlist';
 import logger from '../utils/logger';
-import { wsManager } from '../utils/websocket';
+// import { wsManager } from '../utils/websocket';
+import { syncManager } from '@/utils/sync/syncManager';
 
 import { Button } from './ui/button';
 
@@ -126,11 +127,13 @@ onMounted(() => {
   if (userStore.username) {
     fetchPlaylist();
   }
-  wsManager.subscribe('updatePlaylist', handleUpdatePlaylist);
+  // wsManager.subscribe('updatePlaylist', handleUpdatePlaylist);
+  syncManager.subscribe('updatePlaylist', handleUpdatePlaylist);
 });
 
 onUnmounted(() => {
-  wsManager.unsubscribe('updatePlaylist', handleUpdatePlaylist);
+  // wsManager.unsubscribe('updatePlaylist', handleUpdatePlaylist);
+  syncManager.unsubscribe('updatePlaylist', handleUpdatePlaylist);
 });
 
 function handleUpdatePlaylist() {

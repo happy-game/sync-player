@@ -2,7 +2,8 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import request, { updateAxiosBaseUrl } from '@/utils/axios';
 import logger from '@/utils/logger';
-import { wsManager } from '@/utils/websocket';
+// import { wsManager } from '@/utils/websocket';
+import { syncManager } from '@/utils/sync/syncManager';
 
 export interface UserListItem {
   id: number;
@@ -32,7 +33,8 @@ export const useUserStore = defineStore('user', () => {
   }
 
   function connectWebSocket() {
-    wsManager.connect(userId.value, roomId.value);
+    // wsManager.connect(userId.value, roomId.value);
+    syncManager.connect(userId.value, roomId.value);
     // 连接后立即获取在线用户列表
     fetchOnlineUsers();
   }
