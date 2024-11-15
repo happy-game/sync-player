@@ -8,6 +8,10 @@ interface ImportMetaEnv {
   
   // 其他配置
   VITE_APP_TITLE: string
+  
+  // 备案信息
+  VITE_ICP_NUMBER: string
+  VITE_POLICE_NUMBER: string
 }
 
 interface ImportMeta {

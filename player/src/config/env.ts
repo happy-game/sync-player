@@ -17,6 +17,10 @@ export const env = {
   
   // 其他配置
   APP_TITLE: getEnvValue('VITE_APP_TITLE', 'Sync Player'),
+  
+  // 备案信息
+  ICP_NUMBER: getEnvValue('VITE_ICP_NUMBER', ''),
+  POLICE_NUMBER: getEnvValue('VITE_POLICE_NUMBER', ''),
 } as const
 
 export type Env = typeof env 

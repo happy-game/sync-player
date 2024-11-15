@@ -8,6 +8,9 @@ import Users from './components/Users.vue';
 import Playing from './components/Playing.vue';
 import { useUserStore } from './stores/user';
 import logger from './utils/logger';
+import IcpBeian from './components/IcpBeian.vue';
+import PoliceBeian from './components/PoliceBeian.vue';
+import { env } from './config/env';
 
 const showLoginModal = ref(true);
 const userStore = useUserStore();
@@ -51,6 +54,12 @@ onMounted(() => {
         </div>
       </div>
     </main>
+    
+    <!-- 备案信息 -->
+    <footer v-if="env.ICP_NUMBER || env.POLICE_NUMBER" class="w-full py-4 flex justify-center items-center gap-4 border-t">
+      <IcpBeian v-if="env.ICP_NUMBER" />
+      <PoliceBeian v-if="env.POLICE_NUMBER" />
+    </footer>
   </div>
   <Users />
   <LoginModal 
@@ -61,6 +70,6 @@ onMounted(() => {
 
 <style scoped>
 main {
-  min-height: calc(100vh - 60px);
+  min-height: calc(100vh - 56px);
 }
 </style>
