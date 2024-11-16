@@ -16,6 +16,12 @@
           </button>
           <button 
             class="text-muted-foreground hover:text-red-500 p-1 rounded"
+            @click="handleLogout"
+          >
+            <LogOut class="h-4 w-4" />
+          </button>
+          <button 
+            class="text-muted-foreground hover:text-red-500 p-1 rounded"
             @click="isVisible = false"
           >
             <X class="h-4 w-4" />
@@ -48,7 +54,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { Settings, X, Users } from 'lucide-vue-next'
+import { Settings, X, Users, LogOut } from 'lucide-vue-next'
 import { useUserStore } from '@/stores/user';
 // import { wsManager } from '@/utils/websocket';
 import { syncManager } from '@/utils/sync/syncManager';
@@ -76,6 +82,16 @@ onUnmounted(() => {
 function handleUpdateUsers(data: any) {
   logger.info('收到用户列表更新:', data);
   userStore.fetchOnlineUsers();
+}
+
+function handleLogout() {
+  // 清除所有cookies
+  document.cookie.split(';').forEach(cookie => {
+    document.cookie = cookie.replace(/^ +/, '').replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
+  });
+  
+  // 刷新页面
+  window.location.reload();
 }
 </script>
 
