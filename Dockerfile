@@ -1,5 +1,8 @@
 FROM node:lts-alpine AS builder
 
+ARG VITE_API_BASE_URL
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+
 # 构建player
 WORKDIR /app/player
 COPY player/package*.json ./
