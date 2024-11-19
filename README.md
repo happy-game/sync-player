@@ -9,6 +9,21 @@ Sync Player 是一个基于 Web 的实时在线视频同步播放器，允许多
 - 可自定义播放列表
 - 支持视频播放控制（播放、暂停、进度调整等）
 
+## 使用docker运行
+
+```bash
+docker pull ghcr.io/happy-game/sync-player
+
+docker run -d \
+--name sync-player \
+-p 3000:3000 \
+-v sync-player:/app/server/data \
+ghcr.io/happy-game/sync-player
+
+# 唯一需要持久化存储的数据就是sqlite文件，如果你修改了环境变量请修改 `-v`的参数
+```
+可以通过修改环境变量修改配置，具体请参照 [player](/player/.env.example)和 [server](/server/.env.example)
+
 ## 手动构建运行
 
 ### 后端服务器
@@ -64,7 +79,7 @@ npm run build
 
 这样会生成一个`dist`目录，将该目录复制到静态页面服务器托管即可, 如 `nginx` 可复制到`/usr/share/nginx/html`.
 
-## 使用 docker 运行
+<!-- ## 使用 docker 运行
 
 1. 确保已安装 Docker 和 Docker Compose.
 
@@ -74,8 +89,25 @@ npm run build
 
 ```bash
 docker-compose up --build
-```
+``` -->
 
+## 使用 nginx 代理后端
+
+添加以下配置:
+```
+location / {
+    proxy_pass http://127.0.0.1:3000/;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+
+    # WebSocket 支持
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+}
+```
 ## 许可证
 
 本项目使用 [MIT](/LICENSE) 许可证发布.

@@ -35,7 +35,7 @@ export const env: EnvConfig = {
   NODE_ENV: getEnvValue('NODE_ENV', 'development'),
   PORT: parseInt(getEnvValue('PORT', '3000')),
   DB_DIALECT: getEnvValue('DB_DIALECT', 'sqlite') as 'sqlite' | 'mysql',
-  DB_STORAGE: getEnvValue('DB_STORAGE', './sync-player.sqlite'),
+  DB_STORAGE: getEnvValue('DB_STORAGE', './data/sync-player.sqlite'),
   DB_LOGGING: getEnvValue('DB_LOGGING', 'false') === 'true',
   LOG_LEVEL: getEnvValue('LOG_LEVEL', 'info'),
 
