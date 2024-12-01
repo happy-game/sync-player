@@ -11,7 +11,7 @@
           <div class="flex items-center gap-1">
             <button 
               class="text-muted-foreground hover:text-foreground p-1 rounded"
-              @click="toggleSettings"
+              @click="displaySettings"
             >
               <Settings class="h-4 w-4" />
             </button>
@@ -52,6 +52,7 @@
       <Users class="h-5 w-5" />
     </button>
   </div>
+  <SettingsModal :show="showSettingsModal" @close="showSettingsModal = false" />
 </template>
 
 <script setup lang="ts">
@@ -61,14 +62,15 @@ import { useUserStore } from '@/stores/user';
 // import { wsManager } from '@/utils/websocket';
 import { syncManager } from '@/utils/sync/syncManager';
 import logger from '@/utils/logger';
+import SettingsModal from './SettingsModal.vue';
 
 const userStore = useUserStore();
 // 控制显示状态
 const isVisible = ref(true)
+const showSettingsModal = ref(false);
 
-const toggleSettings = () => {
-  // TODO: 实现设置面板
-  console.log('Settings clicked')
+const displaySettings = () => {
+  showSettingsModal.value = true;
 }
 
 onMounted(() => {
