@@ -73,25 +73,34 @@ export const useUserStore = defineStore('user', () => {
     let queryRoomId: number | null = null;
     
     try {
-      try {
-        const userResponse = await request.get(`user/query?username=${newUsername}`);
-        queryUserId = userResponse.data.id;
-      } catch (error) {
-        const createUserResponse = await request.post('user/create', {
-          username: newUsername,
-        });
-        queryUserId = createUserResponse.data.id;
-      }
+      // try {
+      //   const userResponse = await request.get(`user/query?username=${newUsername}`);
+      //   queryUserId = userResponse.data.id;
+      // } catch (error) {
+      //   const createUserResponse = await request.post('user/create', {
+      //     username: newUsername,
+      //   });
+      //   queryUserId = createUserResponse.data.id;
+      // }
 
-      try {
-        const roomResponse = await request.get(`room/query?name=${newRoomName}`);
-        queryRoomId = roomResponse.data.id;
-      } catch (error) {
-        const createRoomResponse = await request.post('room/create', {
-          name: newRoomName,
-        });
-        queryRoomId = createRoomResponse.data.id;
-      }
+      // try {
+      //   const roomResponse = await request.get(`room/query?name=${newRoomName}`);
+      //   queryRoomId = roomResponse.data.id;
+      // } catch (error) {
+      //   const createRoomResponse = await request.post('room/create', {
+      //     name: newRoomName,
+      //   });
+      //   queryRoomId = createRoomResponse.data.id;
+      // }
+      const queryUserResponse = await request.post('user/login', {
+        username: newUsername,
+      });
+      queryUserId = queryUserResponse.data.id;
+
+      const queryRoomResponse = await request.post('room/create', {
+        name: newRoomName,
+      });
+      queryRoomId = queryRoomResponse.data.id;
 
       const joinRoomResponse = await request.post('room/join', {
         userId: queryUserId,

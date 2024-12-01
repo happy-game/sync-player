@@ -15,7 +15,11 @@ router.post('/create', async (req: Request, res: Response): Promise<void> => {
     // check if room name already exists
     const existingRoom = await getRoomByName(name);
     if (existingRoom) {
-      res.status(400).json({ error: 'Room name already exists' });
+      res.json({
+        id: existingRoom.id,
+        name: existingRoom.name,
+        createdTime: existingRoom.createdTime
+      });
       return;
     }
 

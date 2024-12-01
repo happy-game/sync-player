@@ -4,14 +4,18 @@ import logger from '../config/logger';
 
 const router = Router();
 
-router.post('/create', async (req: Request, res: Response): Promise<void> => {
+router.post('/login', async (req: Request, res: Response): Promise<void> => {
   try {
     const { username, password } = req.body;
     
     // check if username already exists
     const existingUser = await getUserByUsername(username);
     if (existingUser) {
-      res.status(400).json({ error: 'Username already exists' });
+      res.json({
+        id: existingUser.id,
+        username: existingUser.username,
+        createdTime: existingUser.createdTime
+      });
       return;
     }
 
