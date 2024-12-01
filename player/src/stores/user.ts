@@ -34,15 +34,14 @@ export const useUserStore = defineStore('user', () => {
   }
 
   async function connectWebSocket() {
-    // wsManager.connect(userId.value, roomId.value);
     const response = await request.get('sync/protocol');
 
     const urlConfig = document.cookie
-    .split('; ')
-    .find(row => row.startsWith('urlConfig='));
+      .split('; ')
+      .find(row => row.startsWith('urlConfig='));
   
     let baseURL = env.API_BASE_URL;
-    
+  
     if (urlConfig) {
       try {
         const config = JSON.parse(decodeURIComponent(urlConfig.split('=')[1]));
@@ -56,15 +55,16 @@ export const useUserStore = defineStore('user', () => {
     }
 
     if (response.data.protocol === 'websocket') {
-      logger.info('Using WebSocket protocol, setting baseURL:', baseURL.replace('http', 'ws').replace('api', 'socket'));
-      syncManager.setProtocol('websocket', baseURL.replace('http', 'ws').replace('api', 'socket'));
+      const wsUrl = baseURL.replace('http', 'ws').replace('api', 'socket');
+      logger.info('Using WebSocket protocol, setting baseURL:', wsUrl);
+      syncManager.setProtocol('websocket', wsUrl);
     }
     else if (response.data.protocol === 'sse') {
-      logger.info('Using SSE protocol, setting baseURL:', baseURL.replace('api', 'sse'));
-      syncManager.setProtocol('sse', baseURL.replace('api', 'sse'));
+      const sseUrl = baseURL.replace('api', 'sse');
+      logger.info('Using SSE protocol, setting baseURL:', sseUrl);
+      syncManager.setProtocol('sse', sseUrl);
     }
     syncManager.connect(userId.value, roomId.value);
-    // 连接后立即获取在线用户列表
     fetchOnlineUsers();
   }
 

@@ -47,15 +47,6 @@
               :placeholder="defaultApiBaseUrl"
             >
           </div>
-          <div class="mb-4">
-            <label class="block text-sm font-medium mb-1">WebSocket URL</label>
-            <input 
-              v-model="wsBaseUrl" 
-              type="text" 
-              class="w-full px-3 py-2 border rounded-lg"
-              :placeholder="defaultWsBaseUrl"
-            >
-          </div>
         </div>
 
         <div class="flex justify-end gap-2">
@@ -97,43 +88,20 @@ const roomName = ref('');
 const userStore = useUserStore();
 
 const apiBaseUrl = ref('');
-const wsBaseUrl = ref('');
 const showAdvanced = ref(false); // 控制高级选项的显示状态
 
 // 计算默认的 API Base URL
 const defaultApiBaseUrl = env.API_BASE_URL;
 
-// 计算默认的 WebSocket URL
-const defaultWsBaseUrl = computed(() => {
-  if (wsBaseUrl.value) return wsBaseUrl.value;
-  
-  const apiUrl = apiBaseUrl.value || defaultApiBaseUrl;
-  try {
-    const url = new URL(apiUrl);
-    const protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
-    return `${protocol}//${url.host}/socket`;
-  } catch (e) {
-    return env.WS_BASE_URL;
-  }
-});
-
 const handleSubmit = async () => {
   try {
-    // 使用实际输入的值或默认值
-    // const finalApiBaseUrl = apiBaseUrl.value || defaultApiBaseUrl;
-    // const finalWsBaseUrl = wsBaseUrl.value || defaultWsBaseUrl.value;
-    // 判断是否为空，如果为空，则不设置cookie
     if (apiBaseUrl.value) {
       const finalApiBaseUrl = apiBaseUrl.value;
-      const finalWsBaseUrl = wsBaseUrl.value || defaultWsBaseUrl.value;
       document.cookie = `urlConfig=${JSON.stringify({
         apiBaseUrl: finalApiBaseUrl,
-        wsBaseUrl: finalWsBaseUrl,
       })}; path=/`;
       updateAxiosBaseUrl(finalApiBaseUrl);
     }
-
-    
     
     await userStore.login(username.value, roomName.value);
     emit('close');
