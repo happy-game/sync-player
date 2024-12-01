@@ -1,55 +1,57 @@
 <template>
-  <div v-show="isVisible" class="fixed bottom-4 right-4 z-50">
-    <div class="bg-white rounded-lg shadow-lg p-4 w-80">
-      <!-- 标题栏 -->
-      <div class="flex items-center justify-between mb-4">
-        <div class="flex items-center gap-2">
-          <div class="text-sm font-medium">房间: {{ userStore.roomName }}({{ userStore.roomId }}), 用户: {{ userStore.username }} ({{ userStore.userId }})</div>
-          <!-- <div class="text-xs text-muted-foreground">({{ users.length }})</div> -->
-        </div>
-        <div class="flex items-center gap-1">
-          <button 
-            class="text-muted-foreground hover:text-foreground p-1 rounded"
-            @click="toggleSettings"
-          >
-            <Settings class="h-4 w-4" />
-          </button>
-          <button 
-            class="text-muted-foreground hover:text-red-500 p-1 rounded"
-            @click="handleLogout"
-          >
-            <LogOut class="h-4 w-4" />
-          </button>
-          <button 
-            class="text-muted-foreground hover:text-red-500 p-1 rounded"
-            @click="isVisible = false"
-          >
-            <X class="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-
-      <!-- 用户列表 -->
-      <div class="space-y-2">
-        <div v-for="user in userStore.userList" :key="user.id" class="flex items-center gap-2">
-          <div class="relative">
-            <div class="h-2 w-2 rounded-full" :class="user.online ? 'bg-green-500' : 'bg-gray-300'" >
-            </div>
+  <div v-if="userStore.username">
+    <div v-show="isVisible" class="fixed bottom-4 right-4 z-50">
+      <div class="bg-white rounded-lg shadow-lg p-4 w-80">
+        <!-- 标题栏 -->
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2">
+            <div class="text-sm font-medium">房间: {{ userStore.roomName }}({{ userStore.roomId }}), 用户: {{ userStore.username }} ({{ userStore.userId }})</div>
+            <!-- <div class="text-xs text-muted-foreground">({{ users.length }})</div> -->
           </div>
-          <div class="text-sm">{{ user.username }}</div>
+          <div class="flex items-center gap-1">
+            <button 
+              class="text-muted-foreground hover:text-foreground p-1 rounded"
+              @click="toggleSettings"
+            >
+              <Settings class="h-4 w-4" />
+            </button>
+            <button 
+              class="text-muted-foreground hover:text-red-500 p-1 rounded"
+              @click="handleLogout"
+            >
+              <LogOut class="h-4 w-4" />
+            </button>
+            <button 
+              class="text-muted-foreground hover:text-red-500 p-1 rounded"
+              @click="isVisible = false"
+            >
+              <X class="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+
+        <!-- 用户列表 -->
+        <div class="space-y-2">
+          <div v-for="user in userStore.userList" :key="user.id" class="flex items-center gap-2">
+            <div class="relative">
+              <div class="h-2 w-2 rounded-full" :class="user.online ? 'bg-green-500' : 'bg-gray-300'" >
+              </div>
+            </div>
+            <div class="text-sm">{{ user.username }}</div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- 重新显示按钮 -->
-  <button 
-    v-if="!isVisible"
-    class="fixed bottom-4 right-4 p-2 bg-white rounded-full shadow-lg hover:bg-gray-100 z-50"
-    @click="isVisible = true"
-  >
-    <Users class="h-5 w-5" />
-  </button>
+    <!-- 重新显示按钮 -->
+    <button 
+      v-if="!isVisible && userStore.username"
+      class="fixed bottom-4 right-4 p-2 bg-white rounded-full shadow-lg hover:bg-gray-100 z-50"
+      @click="isVisible = true"
+    >
+      <Users class="h-5 w-5" />
+    </button>
+  </div>
 </template>
 
 <script setup lang="ts">
