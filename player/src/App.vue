@@ -14,6 +14,7 @@ import { env } from './config/env';
 
 const showLoginModal = ref(true);
 const userStore = useUserStore();
+const videoPlayerRef = ref<InstanceType<typeof VideoPlayer> | null>(null);
 
 onMounted(() => {
   document.title = 'sync-player';
@@ -26,23 +27,23 @@ onMounted(() => {
     logger.debug('未找到cookie中的用户信息');
   }
 });
+
+const handleRequestSync = () => {
+  videoPlayerRef.value?.requestSync();
+};
+
+const handleSendSync = () => {
+  videoPlayerRef.value?.sendSync();
+};
 </script>
 
 <template>
   <div class="min-h-screen bg-background">
-    <!-- <header class="border-b">
-      <div v-if="userStore.username" class="px-4 flex items-center justify-between h-14">
-        <div class="text-sm text-muted-foreground">
-          欢迎, {{ userStore.username }} | 房间: {{ userStore.roomName }}
-        </div>
-      </div>
-    </header> -->
-
     <main class="h-[calc(100vh-3.5rem)]">
       <div class="flex flex-col md:grid md:grid-cols-4 h-full">
         <div class="flex-1 md:col-span-3 flex flex-col">
           <div class="flex-1">
-            <VideoPlayer class="w-full h-full" />
+            <VideoPlayer ref="videoPlayerRef" class="w-full h-full" />
           </div>
           <div class="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
             <AddPlaylist />
@@ -62,7 +63,10 @@ onMounted(() => {
       <PoliceBeian v-if="env.POLICE_NUMBER" />
     </footer>
   </div>
-  <Users />
+  <Users 
+    @request-sync="handleRequestSync"
+    @send-sync="handleSendSync"
+  />
   <LoginModal 
     :show="showLoginModal"
     @close="showLoginModal = false"

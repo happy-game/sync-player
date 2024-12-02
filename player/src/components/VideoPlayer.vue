@@ -120,7 +120,11 @@ async function updatePlayer(data: SyncData) {
     return;
   }
   enable_sync = false;
-  please_enable_sync = true;  
+  please_enable_sync = true;
+  setTimeout(() => {
+    enable_sync = true;
+    please_enable_sync = false;
+  }, 1000 * 10);  // 设置10s的等待时间， 超时后自动开启同步
   const currentTime = player?.currentTime();
   if (currentTime === undefined) {  // fucking typescript
     return;
@@ -216,6 +220,10 @@ async function handleSourceChange(newSource: string) {
     // 关闭同步
     enable_sync = false;
     please_enable_sync = true;
+    setTimeout(() => {
+      enable_sync = true;
+      please_enable_sync = false;
+    }, 1000 * 10);  // 设置10s的等待时间， 超时后自动开启同步
     const currentTime = player.currentTime()
     const paused = player.paused()
     
@@ -232,4 +240,17 @@ async function handleSourceChange(newSource: string) {
     })
   }
 }
+
+// 暴露方法给父组件
+defineExpose({
+  requestSync: async () => {
+    const result = await getSyncData();
+    if (result) {
+      updatePlayer(result);
+    }
+  },
+  sendSync: () => {
+    sendSyncData();
+  }
+});
 </script>
