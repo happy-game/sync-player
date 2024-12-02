@@ -2,7 +2,6 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import request, { updateAxiosBaseUrl } from '@/utils/axios';
 import logger from '@/utils/logger';
-// import { wsManager } from '@/utils/websocket';
 import { syncManager } from '@/utils/sync/syncManager';
 import { env } from '../config/env';
 
@@ -33,7 +32,7 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-  async function connectWebSocket() {
+  async function connectSyncManager() {
     const response = await request.get('sync/protocol');
 
     const urlConfig = document.cookie
@@ -73,25 +72,6 @@ export const useUserStore = defineStore('user', () => {
     let queryRoomId: number | null = null;
     
     try {
-      // try {
-      //   const userResponse = await request.get(`user/query?username=${newUsername}`);
-      //   queryUserId = userResponse.data.id;
-      // } catch (error) {
-      //   const createUserResponse = await request.post('user/create', {
-      //     username: newUsername,
-      //   });
-      //   queryUserId = createUserResponse.data.id;
-      // }
-
-      // try {
-      //   const roomResponse = await request.get(`room/query?name=${newRoomName}`);
-      //   queryRoomId = roomResponse.data.id;
-      // } catch (error) {
-      //   const createRoomResponse = await request.post('room/create', {
-      //     name: newRoomName,
-      //   });
-      //   queryRoomId = createRoomResponse.data.id;
-      // }
       const queryUserResponse = await request.post('user/login', {
         username: newUsername,
       });
@@ -111,7 +91,7 @@ export const useUserStore = defineStore('user', () => {
       roomName.value = newRoomName;
       userId.value = queryUserId;
       roomId.value = queryRoomId;
-      connectWebSocket();
+      connectSyncManager();
 
     } catch (error) {
       logger.error('登录失败:', error);
@@ -139,10 +119,9 @@ export const useUserStore = defineStore('user', () => {
         userId.value = data.userId;
         roomId.value = data.roomId;
         
-        // initAxios();
         if (userId.value && roomId.value) {
           updateAxiosBaseUrl();
-          connectWebSocket();
+          connectSyncManager();
         }
         return true;
       } catch (error) {
@@ -160,7 +139,7 @@ export const useUserStore = defineStore('user', () => {
     userList,
     login,
     loadFromCookie,
-    connectWebSocket,
+    connectSyncManager: connectSyncManager,
     updateUserList,
     fetchOnlineUsers,
   };

@@ -59,7 +59,6 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { Settings, X, Users, LogOut } from 'lucide-vue-next'
 import { useUserStore } from '@/stores/user';
-// import { wsManager } from '@/utils/websocket';
 import { syncManager } from '@/utils/sync/syncManager';
 import logger from '@/utils/logger';
 import SettingsModal from './SettingsModal.vue';
@@ -74,12 +73,10 @@ const displaySettings = () => {
 }
 
 onMounted(() => {
-  // wsManager.subscribe('updateUserList', handleUpdateUsers);
   syncManager.subscribe('updateUserList', handleUpdateUsers);
 });
 
 onUnmounted(() => {
-  // wsManager.unsubscribe('updateUserList', handleUpdateUsers);
   syncManager.unsubscribe('updateUserList', handleUpdateUsers);
 });
 

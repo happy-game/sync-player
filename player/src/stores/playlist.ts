@@ -40,16 +40,6 @@ export const usePlaylistStore = defineStore('playlist', () => {
 
   async function setPlaylist(newPlaylist: PlaylistItem[]) {
     playlist.value = newPlaylist;
-
-    // try {
-    //   const response = await axios.get('/api/sync/query');
-    //   if (response.status === 200) {
-    //     const currentVideoId = response.data.currentVideoId;
-    //     switchVideo(currentVideoId);
-    //   }
-    // } catch (error) {
-    //   logger.error('Failed to get current playing video:', error);
-    // }
     if (playlist.value.length > 0) {
       switchVideo(playlist.value[0].id);  // TODO: use /sync/query to get the current playing video
     }

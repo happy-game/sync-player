@@ -56,7 +56,7 @@ const handleSubmit = () => {
   })}; path=/`;
   updateAxiosBaseUrl(newBaseUrl.value);
 
-  userStore.connectWebSocket();
+  userStore.connectSyncManager();
   closeModal();
 };
 

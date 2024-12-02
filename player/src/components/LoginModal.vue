@@ -70,7 +70,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import { useUserStore } from '../stores/user';
 import { env } from '../config/env';
 import { updateAxiosBaseUrl } from '@/utils/axios';

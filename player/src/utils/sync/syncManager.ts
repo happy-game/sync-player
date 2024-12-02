@@ -52,27 +52,6 @@ export class SyncManager implements ISyncManager {
       logger.error('连接错误:', error);
     });
 
-    // 连接
-    // const urlConfig = document.cookie
-    //   .split('; ')
-    //   .find(row => row.startsWith('urlConfig='));
-    
-    // let url = this.config.url;
-    // if (urlConfig) {
-    //   try {
-    //     const config = JSON.parse(decodeURIComponent(urlConfig.split('=')[1]));
-    //     if (this.config.protocol === 'websocket' && config.wsBaseUrl) {
-    //       url = config.wsBaseUrl;
-    //     } else if (this.config.protocol === 'sse' && config.sseBaseUrl) {
-    //       url = config.sseBaseUrl;
-    //     }
-    //   } catch (error) {
-    //     logger.error('解析URL配置失败:', error);
-    //   }
-    // }
-
-    // this.adapter.connect(url);
-
     // 发送认证消息
     if (userId && roomId) {
       this.adapter.connect(this.config.url, userId, roomId);

@@ -134,11 +134,6 @@ async function updatePlayer(data: SyncData) {
   if (diff > syncThreshold) {
     logger.info('Updating player time', data.time);
     player?.currentTime(data.time);
-    // if (data.paused) {
-    //   player?.pause();
-    // } else {
-    //   player?.play();
-    // }
     player?.play(); // FIXME: always play
     logger.info('Player time updated');
   }
@@ -189,22 +184,17 @@ watch(() => playerStore.currentSource, (newSource) => {
 
 onMounted(() => {
 	initPlayer();
-	// wsManager.subscribe('updateTime', handleUpdateTime);
-  // wsManager.subscribe('updatePause', handleUpdatePause);
   syncManager.subscribe('updateTime', handleUpdateTime);
   syncManager.subscribe('updatePause', handleUpdatePause);
 });
 
 onUnmounted(() => {
-	// wsManager.unsubscribe('updateTime', handleUpdateTime);
-  // wsManager.unsubscribe('updatePause', handleUpdatePause);
   syncManager.unsubscribe('updateTime', handleUpdateTime);
   syncManager.unsubscribe('updatePause', handleUpdatePause);
 });
 
 async function handleUpdateTime(data: any) {
   logger.info('Received update time', data);
-	// updatePlayer(data);
   const result = await getSyncData();  // FIXME: 目标设备会大约快 2s, 检查时间计算逻辑
   if (result) {
     updatePlayer(result);

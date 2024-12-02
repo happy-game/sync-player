@@ -61,7 +61,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { usePlaylistStore } from '@/stores/playlist';
 import { Plus, FolderOpen } from 'lucide-vue-next';
 import logger from '@/utils/logger';
