@@ -161,7 +161,11 @@ watch(() => playlistStore.playlistChanged, async () => {
     logger.info('Playlist changed');
     const syncData = await getSyncData();
     const currentVideoId = syncData?.videoId;
-    // 判断是否与当前播放的视频相同
+    // 判断是否在播放列表中
+    if (!playlistStore.playlist.find((video) => video.id === currentVideoId)) {
+      logger.warn('Current video is not in playlist');
+      return;
+    }
     if (currentVideoId !== playlistStore.currentVideoId) {
       playlistStore.switchVideo(currentVideoId);
     }

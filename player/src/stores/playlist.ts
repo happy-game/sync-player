@@ -39,7 +39,9 @@ export const usePlaylistStore = defineStore('playlist', () => {
   });
 
   async function setPlaylist(newPlaylist: PlaylistItem[]) {
-    playlist.value = newPlaylist;
+    // playlist.value = newPlaylist;
+    const validPlaylist = newPlaylist.filter((video) => video.playStatus !== PlayStatus.FINISHED);
+    playlist.value = validPlaylist;
     playlistChanged.value = !playlistChanged.value; // FIXME: a better way to trigger the playlist update
   }
 
@@ -125,17 +127,9 @@ export const usePlaylistStore = defineStore('playlist', () => {
 
   async function switchVideo(videoId?: number) {
     try {
-      // 如果没有传入 videoId，则查找下一个要播放的视频
       if (videoId === undefined) {
-        const currentIndex = playlist.value.findIndex(
-          (video) => video.id === currentVideoId.value
-        );
-        
-        // 查找下一个未播放的视频
-        const nextVideo = playlist.value
-          .slice(currentIndex + 1)
-          .find((video) => video.playStatus === PlayStatus.NEW);
-          
+        // 寻找第一个state为new的视频
+        const nextVideo = playlist.value.find((video) => video.playStatus === PlayStatus.NEW);
         if (!nextVideo) {
           logger.warn('No next video to play');
           return;
