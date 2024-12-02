@@ -35,6 +35,10 @@ const handleRequestSync = () => {
 const handleSendSync = () => {
   videoPlayerRef.value?.sendSync();
 };
+
+const handleToggleSync = () => {
+  videoPlayerRef.value?.toggleSync();
+};
 </script>
 
 <template>
@@ -66,6 +70,8 @@ const handleSendSync = () => {
   <Users 
     @request-sync="handleRequestSync"
     @send-sync="handleSendSync"
+    @toggle-sync="handleToggleSync"
+    :sync-enabled="videoPlayerRef?.getSyncState() ?? true"
   />
   <LoginModal 
     :show="showLoginModal"

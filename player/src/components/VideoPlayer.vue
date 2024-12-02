@@ -13,7 +13,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, watch } from 'vue';
+import { onMounted, onUnmounted, watch, ref } from 'vue';
 import videojs from 'video.js';
 import type Player from 'video.js/dist/types/player';
 import 'video.js/dist/video-js.min.css'
@@ -39,6 +39,9 @@ const syncThreshold = 1;
 
 const playlistStore = usePlaylistStore();
 const playerStore = usePlayerStore();
+
+// 添加一个ref来控制同步状态
+const syncEnabled = ref(true);
 
 function initPlayer() {
 	const options = {
@@ -91,7 +94,7 @@ function initPlayer() {
 }
 
 async function sendSyncData() {
-  if (!enable_sync) {
+  if (!enable_sync || !syncEnabled.value) {
     return;
   }
   const currentTime = player?.currentTime();
@@ -115,7 +118,7 @@ async function sendSyncData() {
 }
 
 async function updatePlayer(data: SyncData) {
-  if (!enable_sync) {
+  if (!enable_sync || !syncEnabled.value) {  // 添加syncEnabled.value的检查
     logger.info('Sync disabled');
     return;
   }
@@ -251,6 +254,13 @@ defineExpose({
   },
   sendSync: () => {
     sendSyncData();
-  }
+  },
+  toggleSync: () => {
+    syncEnabled.value = !syncEnabled.value;
+    enable_sync = syncEnabled.value;
+    please_enable_sync = false;
+    logger.info(`同步已${syncEnabled.value ? '启用' : '禁用'}`);
+  },
+  getSyncState: () => syncEnabled.value
 });
 </script>

@@ -41,18 +41,26 @@
             </div>
             <div class="flex items-center gap-1">
               <button 
-                class="text-muted-foreground hover:text-foreground p-1 rounded"
+                class="text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded border"
                 @click="$emit('requestSync')"
                 title="从服务器获取播放进度"
               >
-                <Download class="h-4 w-4" />
+                获取进度
               </button>
               <button 
-                class="text-muted-foreground hover:text-foreground p-1 rounded"
+                class="text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded border"
                 @click="$emit('sendSync')"
                 title="将当前进度同步到服务器"
               >
-                <Upload class="h-4 w-4" />
+                发送进度
+              </button>
+              <button 
+                class="text-xs px-2 py-1 rounded border"
+                :class="syncEnabled ? 'text-muted-foreground hover:text-red-500' : 'text-red-500 hover:text-green-500'"
+                @click="$emit('toggleSync')"
+                :title="syncEnabled ? '禁用同步' : '启用同步'"
+              >
+                {{ syncEnabled ? '禁用同步' : '启用同步' }}
               </button>
             </div>
           </div>
@@ -90,11 +98,16 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { Settings, X, Users, LogOut, Download, Upload } from 'lucide-vue-next'
+import { Settings, X, Users, LogOut } from 'lucide-vue-next'
 import { useUserStore } from '@/stores/user';
 import { syncManager } from '@/utils/sync/syncManager';
 import logger from '@/utils/logger';
 import SettingsModal from './SettingsModal.vue';
+
+// 添加props定义
+const props = defineProps<{
+  syncEnabled: boolean
+}>()
 
 const userStore = useUserStore();
 
@@ -102,6 +115,7 @@ const userStore = useUserStore();
 const emit = defineEmits<{
   (e: 'requestSync'): void
   (e: 'sendSync'): void
+  (e: 'toggleSync'): void
 }>()
 
 // 控制显示状态
