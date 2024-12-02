@@ -22,8 +22,9 @@
                   v-for="(source, index) in playlistStore.currentVideoItem?.VideoSources" 
                   :key="source.id" 
                   :value="String(index)"
+                  class="truncate"
                 >
-                  {{ source.url }}
+                  <span class="truncate block max-w-[280px]">{{ source.url }}</span>
                 </SelectItem>
               </SelectContent>
             </Select>
