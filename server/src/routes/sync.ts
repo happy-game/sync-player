@@ -12,23 +12,23 @@ router.post('/updateTime', async (req: Request, res: Response) => {
         const cookiesJson = JSON.parse(req.cookies.userInfo);
         const roomId = cookiesJson.roomId;
         const userId = cookiesJson.userId;  // TODO: check if the user is admin
-        const { paused, time, timestamp, videoId } = req.body;
-        logger.info(`sync updateTime: roomId=${roomId}, userId=${userId}, paused=${paused}, time=${time}, timestamp=${timestamp}, videoId=${videoId}`);
+        const { time, timestamp, videoId } = req.body;
+        logger.info(`sync updateTime: roomId=${roomId}, userId=${userId}, time=${time}, timestamp=${timestamp}, videoId=${videoId}`);
         if (!time || !timestamp || !videoId) {
             res.status(400).json({ error: 'Invalid request body' });
             return;
         }
         const playStatus = await getRoomPlayStatus(roomId);
         if (!playStatus) {
-            await createRoomPlayStatus(roomId, paused, time, timestamp, videoId);
+            await createRoomPlayStatus(roomId, false, time, timestamp, videoId);
         } else {
-            await updateRoomPlayStatus(roomId, { paused, time, timestamp, videoId });
+            await updateRoomPlayStatus(roomId, { paused: false, time, timestamp, videoId });
         }
         
         const syncManager = getSyncManager();
         syncManager.broadcast(roomId, {
             type: 'updateTime',
-            payload: { roomId, userId, paused, time, timestamp, videoId }
+            payload: { roomId, userId, paused: false, time, timestamp, videoId }
         }, [userId]);
 
         res.json({ message: 'Play status updated' });
