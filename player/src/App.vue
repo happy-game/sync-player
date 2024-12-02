@@ -16,6 +16,7 @@ const showLoginModal = ref(true);
 const userStore = useUserStore();
 
 onMounted(() => {
+  document.title = 'sync-player';
   // try to load user from cookie
   logger.info('正在尝试从cookie加载用户信息...');
   if (userStore.loadFromCookie()) {
