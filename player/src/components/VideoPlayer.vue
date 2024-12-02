@@ -69,14 +69,7 @@ function initPlayer() {
           paused,
           timestamp
         };
-        fetch('/api/sync/updatePause', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(data)
-        })
-        .then(response => response.json());
+        request.post('/sync/updatePause', data);
 			}
 		}
 	};
