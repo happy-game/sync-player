@@ -118,7 +118,6 @@ export const useUserStore = defineStore('user', () => {
         roomName.value = data.roomName;
         userId.value = data.userId;
         roomId.value = data.roomId;
-        
         if (userId.value && roomId.value) {
           updateAxiosBaseUrl();
           connectSyncManager();

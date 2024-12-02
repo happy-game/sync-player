@@ -40,9 +40,6 @@ export const usePlaylistStore = defineStore('playlist', () => {
 
   async function setPlaylist(newPlaylist: PlaylistItem[]) {
     playlist.value = newPlaylist;
-    if (playlist.value.length > 0) {
-      switchVideo(playlist.value[0].id);  // TODO: use /sync/query to get the current playing video
-    }
     playlistChanged.value = !playlistChanged.value; // FIXME: a better way to trigger the playlist update
   }
 

@@ -13,7 +13,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { onMounted, onUnmounted, watch } from 'vue';
 import videojs from 'video.js';
 import type Player from 'video.js/dist/types/player';
 import 'video.js/dist/video-js.min.css'
@@ -21,7 +21,6 @@ import { usePlaylistStore } from '@/stores/playlist';
 import { usePlayerStore } from '@/stores/player';
 
 import logger from '@/utils/logger';
-// import { wsManager } from '@/utils/websocket';
 import { syncManager } from '@/utils/sync/syncManager';
 import request from '@/utils/axios';
 
@@ -154,25 +153,25 @@ async function getSyncData() {
   }
 }
 
-watch(() => playlistStore.playlistChanged, () => {
+watch(() => playlistStore.playlistChanged, async () => {
   if (player) {
     logger.info('Playlist changed');
-    if (playlistStore.currentVideoItem) {
-      if (playlistStore.currentVideoId !== current_video_id) {
-        current_video_id = playlistStore.currentVideoId;
-        player.src({
-          src: playlistStore.currentVideoItem?.VideoSources[0].url,
-          type: 'video/mp4'
-        });
-        player.play();
-      }
-      else {
-        logger.debug('Current video is already playing');
-      }
+    const syncData = await getSyncData();
+    const currentVideoId = syncData?.videoId;
+    // 判断是否与当前播放的视频相同
+    if (currentVideoId !== playlistStore.currentVideoId) {
+      playlistStore.switchVideo(currentVideoId);
     }
     else {
-      logger.error('Current video item is null');
+      logger.debug('Current video is already playing');
     }
+    const videoSrc = playlistStore.playlist[0].VideoSources[0].url;
+    player?.src({
+      src: videoSrc,
+      type: 'video/mp4'
+    });
+    updatePlayer(syncData);
+    player?.play();
   }
 });
 

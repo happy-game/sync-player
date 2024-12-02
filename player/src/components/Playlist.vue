@@ -123,9 +123,6 @@ watch(() => userStore.username, (newValue) => {
 });
 
 onMounted(() => {
-  if (userStore.username) {
-    fetchPlaylist();
-  }
   syncManager.subscribe('updatePlaylist', handleUpdatePlaylist);
 });
 

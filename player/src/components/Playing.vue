@@ -115,14 +115,14 @@ const currentSource = computed(() => {
 });
 
 // 监听当前视频变化,更新选中的源
-watch(() => playlistStore.currentVideoId, (newId) => {
-  if (newId && playlistStore.currentVideoItem) {
-    selectedSourceIndex.value = '0';
-    if (playlistStore.currentVideoItem.VideoSources.length > 0) {
-      playerStore.updateSource(playlistStore.currentVideoItem.VideoSources[0].url);
-    }
-  }
-}, { immediate: true });
+// watch(() => playlistStore.currentVideoId, (newId) => {
+//   if (newId && playlistStore.currentVideoItem) {
+//     selectedSourceIndex.value = '0';
+//     if (playlistStore.currentVideoItem.VideoSources.length > 0) {
+//       playerStore.updateSource(playlistStore.currentVideoItem.VideoSources[0].url);
+//     }
+//   }
+// }, { immediate: true });
 
 // 监听选中源的变化
 watch(selectedSourceIndex, (newIndex) => {
