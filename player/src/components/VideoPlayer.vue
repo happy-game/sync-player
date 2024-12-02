@@ -85,6 +85,9 @@ function initPlayer() {
 	}
 
 	player?.on('seeked', sendSyncData);
+  player?.on('ended', () => {
+    playlistStore.switchVideo();
+  });
 }
 
 async function sendSyncData() {

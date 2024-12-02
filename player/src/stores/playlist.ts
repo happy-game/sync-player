@@ -123,15 +123,37 @@ export const usePlaylistStore = defineStore('playlist', () => {
     }
   }
 
-  async function switchVideo(videoId: number){
+  async function switchVideo(videoId?: number) {
     try {
+      // 如果没有传入 videoId，则查找下一个要播放的视频
+      if (videoId === undefined) {
+        const currentIndex = playlist.value.findIndex(
+          (video) => video.id === currentVideoId.value
+        );
+        
+        // 查找下一个未播放的视频
+        const nextVideo = playlist.value
+          .slice(currentIndex + 1)
+          .find((video) => video.playStatus === PlayStatus.NEW);
+          
+        if (!nextVideo) {
+          logger.warn('No next video to play');
+          return;
+        }
+        videoId = nextVideo.id;
+      }
+
       await request.post('/playlist/switch', { playlistItemId: videoId });
+      
       if (currentVideoId.value !== -1) {
         // Remove the currently playing video if it is not the same as the videoId
-        if (currentVideoId.value !== videoId){
-          playlist.value = playlist.value.filter((video) => video.id !== currentVideoId.value);
+        if (currentVideoId.value !== videoId) {
+          playlist.value = playlist.value.filter(
+            (video) => video.id !== currentVideoId.value
+          );
         }
       }
+
       // Move the videoId video to the first position and set its status to playing
       const videoIndex = playlist.value.findIndex((video) => video.id === videoId);
       if (videoIndex !== -1) {
@@ -139,9 +161,9 @@ export const usePlaylistStore = defineStore('playlist', () => {
         video.playStatus = PlayStatus.PLAYING;
         playlist.value.unshift(video);
       }
+      
       playlistChanged.value = !playlistChanged.value; // FIXME: a better way to trigger the playlist update
-    }
-    catch (error) {
+    } catch (error) {
       logger.error('Failed to switch video:', error);
     }
   }
