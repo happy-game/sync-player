@@ -1,7 +1,10 @@
 # Sync Player
 
-Sync Player 是一个基于 Web 的实时在线视频同步播放器，允许多个用户在不同设备上同步观看视频内容。
-本项目不提供任何视频源, 可以参照[视频源获取](#视频源获取)一节获取视频直链.
+Sync Player 是一个基于 Web 的实时在线视频同步播放器，允许多个用户在不同设备上同步观看视频内容, 位于同一房间的用户的播放进度变更、暂停视频都会同步给其他人。
+
+可以访问[演示站点](https://player.ccnu.work)体验功能。
+
+**!!!注意: 目前本项目未做任何安全性防护, 请注意你的信息安全.**
 
 ## 主要功能
 
@@ -10,7 +13,7 @@ Sync Player 是一个基于 Web 的实时在线视频同步播放器，允许多
 - 可自定义播放列表
 - 支持视频播放控制（播放、暂停、进度调整等）
 
-## 使用docker运行
+## 使用docker运行(推荐)
 
 ```bash
 docker pull ghcr.io/happy-game/sync-player
@@ -124,6 +127,15 @@ location / {
 以上各种方法可以混合使用, 本项目支持为同一个视频指定不同的源, 各个用户可以自行切换.
 
 如果有其他方法欢迎补充.
+
+## 使用的开源项目
+
+1. 使用了[vue3](https://github.com/vuejs/core)编写前端页面
+2. 使用了[tailwindcss](https://github.com/tailwindlabs/tailwindcss)处理样式
+3. 使用了[shadcn](https://ui.shadcn.com/)作为组件库
+4. 使用了[video.js](https://github.com/videojs/video.js)作为视频播放器
+5. 使用了[express](https://github.com/expressjs/express)编写后端服务
+6. 使用了[sequelize](https://github.com/sequelize/sequelize)处理数据库连接
 
 ## 许可证
 
