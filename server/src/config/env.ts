@@ -9,7 +9,7 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 interface EnvConfig {
   NODE_ENV: string;
   PORT: number;
-  DB_DIALECT: 'sqlite' | 'mysql';
+  DB_DIALECT: 'sqlite' | 'mysql' | 'postgres';
   DB_STORAGE: string;
   DB_LOGGING: boolean;
   LOG_LEVEL: string;
@@ -21,6 +21,14 @@ interface EnvConfig {
   MYSQL_USERNAME: string;
   MYSQL_PASSWORD: string;
 
+  // PostgreSQL config
+  POSTGRES_HOST: string;
+  POSTGRES_PORT: number;
+  POSTGRES_DATABASE: string;
+  POSTGRES_USERNAME: string;
+  POSTGRES_PASSWORD: string;
+
+  DB_ENABLE_SSL: boolean;
   // WebSocket or SSE
   SYNC_PROTOCOL?: 'websocket' | 'sse';
 }
@@ -34,7 +42,7 @@ const getEnvValue = (key: string, defaultValue?: any): any => {
 export const env: EnvConfig = {
   NODE_ENV: getEnvValue('NODE_ENV', 'development'),
   PORT: parseInt(getEnvValue('PORT', '3000')),
-  DB_DIALECT: getEnvValue('DB_DIALECT', 'sqlite') as 'sqlite' | 'mysql',
+  DB_DIALECT: getEnvValue('DB_DIALECT', 'sqlite') as 'sqlite' | 'mysql' | 'postgres',
   DB_STORAGE: getEnvValue('DB_STORAGE', './data/sync-player.sqlite'),
   DB_LOGGING: getEnvValue('DB_LOGGING', 'false') === 'true',
   LOG_LEVEL: getEnvValue('LOG_LEVEL', 'info'),
@@ -46,6 +54,14 @@ export const env: EnvConfig = {
   MYSQL_USERNAME: getEnvValue('MYSQL_USERNAME', 'root'),
   MYSQL_PASSWORD: getEnvValue('MYSQL_PASSWORD', 'password'),
 
+  // PostgreSQL config
+  POSTGRES_HOST: getEnvValue('POSTGRES_HOST', 'localhost'),
+  POSTGRES_PORT: parseInt(getEnvValue('POSTGRES_PORT', '5432')),
+  POSTGRES_DATABASE: getEnvValue('POSTGRES_DATABASE', 'sync_player'),
+  POSTGRES_USERNAME: getEnvValue('POSTGRES_USERNAME', 'postgres'),
+  POSTGRES_PASSWORD: getEnvValue('POSTGRES_PASSWORD', 'password'),
+
+  DB_ENABLE_SSL: getEnvValue('DB_ENABLE_SSL', 'false') === 'true',
   // WebSocket or SSE
   SYNC_PROTOCOL: getEnvValue('SYNC_PROTOCOL', 'websocket'),
 };
@@ -67,8 +83,19 @@ const validateEnv = () => {
       'MYSQL_USERNAME',
       'MYSQL_PASSWORD'
     );
+  } else if (env.DB_DIALECT === 'postgres') {
+    requiredEnvs.push(
+      'POSTGRES_HOST',
+      'POSTGRES_PORT',
+      'POSTGRES_DATABASE',
+      'POSTGRES_USERNAME',
+      'POSTGRES_PASSWORD'
+    );
   } else if (env.DB_DIALECT === 'sqlite') {
     requiredEnvs.push('DB_STORAGE');
+  } else {
+    logger.error('Unsupported DB_DIALECT:', env.DB_DIALECT);
+    process.exit(1);
   }
 
   const missingEnvs = requiredEnvs.filter(key => !env[key]);
