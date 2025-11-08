@@ -16,8 +16,8 @@ import (
 // PlaylistAdd adds an item to the playlist
 func PlaylistAdd(c *gin.Context) {
 	var req struct {
-		Title string `json:"title" binding:"required"`
-		URLs  string `json:"urls" binding:"required"`
+		Title   string                        `json:"title" binding:"required"`
+		Sources []database.VideoSourceInput `json:"sources" binding:"required,min=1,dive"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -31,10 +31,10 @@ func PlaylistAdd(c *gin.Context) {
 		return
 	}
 
-	playlistItemID, err := database.AddItemToPlaylist(userInfo.RoomID, req.Title, req.URLs)
+	playlistItemID, err := database.AddItemToPlaylist(userInfo.RoomID, req.Title, req.Sources)
 	if err != nil {
 		config.Logger.Errorf("Failed to add playlist item: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal server error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
@@ -74,22 +74,22 @@ func PlaylistQuery(c *gin.Context) {
 		playStatus = &status
 	}
 
-	if playStatus == nil {
-		playingStatus := models.PlayStatusPlaying
-		playingItems, _ := database.QueryPlaylistItems(userInfo.RoomID, nil, &playingStatus)
-
-		newStatus := models.PlayStatusNew
-		newItems, _ := database.QueryPlaylistItems(userInfo.RoomID, nil, &newStatus)
-
-		items := append(playingItems, newItems...)
-		c.JSON(http.StatusOK, items)
-		return
-	}
-
 	items, err := database.QueryPlaylistItems(userInfo.RoomID, playlistItemID, playStatus)
 	if err != nil {
 		config.Logger.Errorf("Failed to query playlist items: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal server error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	// If no playStatus filter is specified, filter out finished items on the server side
+	if playStatus == nil {
+		filteredItems := make([]models.PlaylistItem, 0)
+		for _, item := range items {
+			if item.PlayStatus != models.PlayStatusFinished {
+				filteredItems = append(filteredItems, item)
+			}
+		}
+		c.JSON(http.StatusOK, filteredItems)
 		return
 	}
 
@@ -156,10 +156,7 @@ func PlaylistClear(c *gin.Context) {
 // PlaylistUpdateOrder updates playlist order
 func PlaylistUpdateOrder(c *gin.Context) {
 	var req struct {
-		OrderIndexList []struct {
-			PlaylistItemID uint `json:"playlistItemId"`
-			OrderIndex     int  `json:"orderIndex"`
-		} `json:"orderIndexList" binding:"required"`
+		OrderIndexList []database.OrderIndexUpdate `json:"orderIndexList" binding:"required,min=1,dive"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -173,8 +170,10 @@ func PlaylistUpdateOrder(c *gin.Context) {
 		return
 	}
 
-	for _, item := range req.OrderIndexList {
-		database.UpdatePlaylistItem(item.PlaylistItemID, nil, nil, &item.OrderIndex)
+	if err := database.UpdatePlaylistOrderBatch(req.OrderIndexList); err != nil {
+		config.Logger.Errorf("Failed to update playlist order: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
 	}
 
 	syncManager := sync.GetSyncManager()
@@ -204,24 +203,34 @@ func PlaylistSwitch(c *gin.Context) {
 		return
 	}
 
-	broadcast := true
-
+	// Mark all currently playing items as finished
 	playingStatus := models.PlayStatusPlaying
-	playingItems, _ := database.QueryPlaylistItems(userInfo.RoomID, nil, &playingStatus)
+	playingItems, err := database.QueryPlaylistItems(userInfo.RoomID, nil, &playingStatus)
+	if err != nil {
+		config.Logger.Errorf("Failed to query playing items: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
 	for _, item := range playingItems {
-		database.UpdatePlayStatus(item.ID, models.PlayStatusFinished)
-		if item.ID == req.PlaylistItemID {
-			broadcast = false
+		if err := database.UpdatePlayStatus(item.ID, models.PlayStatusFinished); err != nil {
+			config.Logger.Errorf("Failed to update play status: %v", err)
 		}
 	}
 
-	database.UpdatePlayStatus(req.PlaylistItemID, models.PlayStatusPlaying)
+	// Set the requested item to playing
+	if err := database.UpdatePlayStatus(req.PlaylistItemID, models.PlayStatusPlaying); err != nil {
+		config.Logger.Errorf("Failed to update play status: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
 
-	_, err := database.GetRoomPlayStatus(userInfo.RoomID)
+	// Update or create room play status
+	_, err = database.GetRoomPlayStatus(userInfo.RoomID)
 	if err != nil {
 		database.CreateRoomPlayStatus(userInfo.RoomID, false, 0, time.Now().UnixMilli(), req.PlaylistItemID)
 	} else {
-		database.UpdateRoomPlayStatus(userInfo.RoomID, map[string]interface{}{
+		database.UpdateRoomPlayStatus(userInfo.RoomID, map[string]any{
 			"paused":    false,
 			"time":      0.0,
 			"timestamp": time.Now().UnixMilli(),
@@ -229,13 +238,12 @@ func PlaylistSwitch(c *gin.Context) {
 		})
 	}
 
-	if broadcast {
-		syncManager := sync.GetSyncManager()
-		if syncManager != nil {
-			syncManager.Broadcast(userInfo.RoomID, sync.SyncMessage{
-				Type: "updatePlaylist",
-			}, []uint{userInfo.UserID})
-		}
+	// Always broadcast playlist update to sync all clients
+	syncManager := sync.GetSyncManager()
+	if syncManager != nil {
+		syncManager.Broadcast(userInfo.RoomID, sync.SyncMessage{
+			Type: "updatePlaylist",
+		}, []uint{userInfo.UserID})
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Playlist item switched"})

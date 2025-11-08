@@ -18,9 +18,9 @@
                 <SelectValue :placeholder="'暂无视频源'" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem 
-                  v-for="(source, index) in playlistStore.currentVideoItem?.VideoSources" 
-                  :key="source.id" 
+                <SelectItem
+                  v-for="(source, index) in playlistStore.currentVideoItem?.videoSources"
+                  :key="source.id"
                   :value="String(index)"
                   class="truncate"
                 >
@@ -111,15 +111,15 @@ function onFileSelected(event: Event) {
 
 // 计算当前视频源
 const currentSource = computed(() => {
-  return playlistStore.currentVideoItem?.VideoSources[0]?.url;
+  return playlistStore.currentVideoItem?.videoSources[0]?.url;
 });
 
 // 监听当前视频变化,更新选中的源
 // watch(() => playlistStore.currentVideoId, (newId) => {
 //   if (newId && playlistStore.currentVideoItem) {
 //     selectedSourceIndex.value = '0';
-//     if (playlistStore.currentVideoItem.VideoSources.length > 0) {
-//       playerStore.updateSource(playlistStore.currentVideoItem.VideoSources[0].url);
+//     if (playlistStore.currentVideoItem.videoSources.length > 0) {
+//       playerStore.updateSource(playlistStore.currentVideoItem.videoSources[0].url);
 //     }
 //   }
 // }, { immediate: true });
@@ -127,8 +127,8 @@ const currentSource = computed(() => {
 // 监听选中源的变化
 watch(selectedSourceIndex, (newIndex) => {
   const index = parseInt(newIndex);
-  if (playlistStore.currentVideoItem?.VideoSources[index]) {
-    const newSource = playlistStore.currentVideoItem.VideoSources[index].url;
+  if (playlistStore.currentVideoItem?.videoSources[index]) {
+    const newSource = playlistStore.currentVideoItem.videoSources[index].url;
     logger.info('选中的视频源索引:', index, '源:', newSource);
     playerStore.updateSource(newSource);
   }

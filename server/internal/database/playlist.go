@@ -1,14 +1,19 @@
 package database
 
 import (
-	"strings"
 	"sync-player-server/internal/models"
 
 	"gorm.io/gorm"
 )
 
+// VideoSourceInput represents the input for creating a video source
+type VideoSourceInput struct {
+	URL   string `json:"url"`
+	Label string `json:"label"`
+}
+
 // AddItemToPlaylist adds an item to the playlist
-func AddItemToPlaylist(roomID uint, title string, urls string, tx ...*gorm.DB) (uint, error) {
+func AddItemToPlaylist(roomID uint, title string, sources []VideoSourceInput, tx ...*gorm.DB) (uint, error) {
 	db := getDB(tx...)
 
 	var maxOrderIndex *int
@@ -33,11 +38,11 @@ func AddItemToPlaylist(roomID uint, title string, urls string, tx ...*gorm.DB) (
 		return 0, err
 	}
 
-	urlList := strings.Split(urls, ",")
-	for _, url := range urlList {
+	for _, source := range sources {
 		videoSource := &models.VideoSource{
 			PlaylistItemID: playlistItem.ID,
-			URL:            strings.TrimSpace(url),
+			URL:            source.URL,
+			Label:          source.Label,
 		}
 		if err := db.Create(videoSource).Error; err != nil {
 			return 0, err
@@ -112,7 +117,7 @@ func ClearPlaylist(roomID uint) error {
 }
 
 // UpdatePlaylistItem updates a playlist item
-func UpdatePlaylistItem(playlistItemID uint, title *string, urls *string, orderIndex *int) error {
+func UpdatePlaylistItem(playlistItemID uint, title *string, sources []VideoSourceInput, orderIndex *int) error {
 	return DB.Transaction(func(tx *gorm.DB) error {
 		updates := make(map[string]interface{})
 
@@ -130,16 +135,16 @@ func UpdatePlaylistItem(playlistItemID uint, title *string, urls *string, orderI
 			}
 		}
 
-		if urls != nil {
+		if sources != nil {
 			if err := tx.Where("playlist_item_id = ?", playlistItemID).Delete(&models.VideoSource{}).Error; err != nil {
 				return err
 			}
 
-			urlList := strings.Split(*urls, ",")
-			for _, url := range urlList {
+			for _, source := range sources {
 				videoSource := &models.VideoSource{
 					PlaylistItemID: playlistItemID,
-					URL:            strings.TrimSpace(url),
+					URL:            source.URL,
+					Label:          source.Label,
 				}
 				if err := tx.Create(videoSource).Error; err != nil {
 					return err
@@ -147,6 +152,26 @@ func UpdatePlaylistItem(playlistItemID uint, title *string, urls *string, orderI
 			}
 		}
 
+		return nil
+	})
+}
+
+// OrderIndexUpdate represents an order index update
+type OrderIndexUpdate struct {
+	PlaylistItemID uint `json:"playlistItemId"`
+	OrderIndex     int  `json:"orderIndex"`
+}
+
+// UpdatePlaylistOrderBatch updates multiple playlist items' order indices in a transaction
+func UpdatePlaylistOrderBatch(updates []OrderIndexUpdate) error {
+	return DB.Transaction(func(tx *gorm.DB) error {
+		for _, update := range updates {
+			if err := tx.Model(&models.PlaylistItem{}).
+				Where("id = ?", update.PlaylistItemID).
+				Update("order_index", update.OrderIndex).Error; err != nil {
+				return err
+			}
+		}
 		return nil
 	})
 }

@@ -19,6 +19,7 @@ import type Player from 'video.js/dist/types/player';
 import 'video.js/dist/video-js.min.css'
 import { usePlaylistStore } from '@/stores/playlist';
 import { usePlayerStore } from '@/stores/player';
+import { useUserStore } from '@/stores/user';
 
 import logger from '@/utils/logger';
 import { syncManager } from '@/utils/sync/syncManager';
@@ -34,11 +35,11 @@ interface SyncData {
 let player: Player | null = null;
 let enable_sync = true;
 let please_enable_sync = false;
-let current_video_id = 0;
 const syncThreshold = 1;
 
 const playlistStore = usePlaylistStore();
 const playerStore = usePlayerStore();
+const userStore = useUserStore();
 
 // 添加一个ref来控制同步状态
 const syncEnabled = ref(true);
@@ -89,7 +90,9 @@ function initPlayer() {
 
 	player?.on('seeked', sendSyncData);
   player?.on('ended', () => {
-    playlistStore.switchVideo();
+    if (userStore.roomId) {
+      playlistStore.switchVideo(userStore.roomId);
+    }
   });
 }
 
@@ -156,28 +159,26 @@ async function getSyncData() {
   }
 }
 
-watch(() => playlistStore.playlistChanged, async () => {
-  if (player) {
-    logger.info('Playlist changed');
-    const syncData = await getSyncData();
-    const currentVideoId = syncData?.videoId;
-    // 判断是否在播放列表中
-    if (!playlistStore.playlist.find((video) => video.id === currentVideoId)) {
-      logger.warn('Current video is not in playlist');
+watch(() => playlistStore.currentVideoId, async (newVideoId) => {
+  if (player && newVideoId && newVideoId !== -1) {
+    logger.info('Current video changed:', newVideoId);
+    const currentVideo = playlistStore.currentVideoItem;
+
+    if (!currentVideo || !currentVideo.videoSources || currentVideo.videoSources.length === 0) {
+      logger.warn('No video sources available');
       return;
     }
-    if (currentVideoId !== playlistStore.currentVideoId) {
-      playlistStore.switchVideo(currentVideoId);
-    }
-    else {
-      logger.debug('Current video is already playing');
-    }
-    const videoSrc = playlistStore.playlist[0].VideoSources[0].url;
+
+    const videoSrc = currentVideo.videoSources[0].url;
     player?.src({
       src: videoSrc,
       type: 'video/mp4'
     });
-    updatePlayer(syncData);
+
+    const syncData = await getSyncData();
+    if (syncData) {
+      updatePlayer(syncData);
+    }
     player?.play();
   }
 });
