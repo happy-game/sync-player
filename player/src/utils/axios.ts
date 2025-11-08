@@ -38,6 +38,12 @@ function initAxios() {
   // 请求拦截器
   request.interceptors.request.use(
     config => {
+      // Add JWT token to Authorization header if available
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+
       logger.debug('Request:', config.method?.toUpperCase(), config.url);
       return config;
     },

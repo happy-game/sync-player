@@ -18,6 +18,7 @@ export const useUserStore = defineStore('user', () => {
   const userId = ref<number | null>(null);
   const roomId = ref<number | null>(null);
   const userList = ref<UserListItem[]>([]);
+  const authToken = ref<string | null>(null);
 
   function updateUserList(users: UserListItem[]) {
     userList.value = users;
@@ -54,12 +55,12 @@ export const useUserStore = defineStore('user', () => {
     }
 
     if (response.data.protocol === 'websocket') {
-      const wsUrl = baseURL.replace('http', 'ws').replace('api', 'socket');
+      const wsUrl = baseURL.replace('http', 'ws').replace('/api', '/ws');
       logger.info('Using WebSocket protocol, setting baseURL:', wsUrl);
       syncManager.setProtocol('websocket', wsUrl);
     }
     else if (response.data.protocol === 'sse') {
-      const sseUrl = baseURL.replace('api', 'sse');
+      const sseUrl = baseURL.replace('/api', '/sse');
       logger.info('Using SSE protocol, setting baseURL:', sseUrl);
       syncManager.setProtocol('sse', sseUrl);
     }
@@ -87,6 +88,12 @@ export const useUserStore = defineStore('user', () => {
         roomId: queryRoomId,
       });
 
+      // Save JWT token
+      if (joinRoomResponse.data.token) {
+        authToken.value = joinRoomResponse.data.token;
+        localStorage.setItem('authToken', joinRoomResponse.data.token);
+      }
+
       username.value = newUsername;
       roomName.value = newRoomName;
       userId.value = queryUserId;
@@ -98,6 +105,7 @@ export const useUserStore = defineStore('user', () => {
       throw error;
     }
 
+    // Also save to cookie for backward compatibility
     document.cookie = `userInfo=${JSON.stringify({
       username: newUsername,
       roomName: newRoomName,
@@ -107,10 +115,16 @@ export const useUserStore = defineStore('user', () => {
   }
 
   function loadFromCookie() {
+    // Try to load token from localStorage first
+    const savedToken = localStorage.getItem('authToken');
+    if (savedToken) {
+      authToken.value = savedToken;
+    }
+
     const userInfo = document.cookie
       .split('; ')
       .find(row => row.startsWith('userInfo='));
-    
+
     if (userInfo) {
       try {
         const data = JSON.parse(decodeURIComponent(userInfo.split('=')[1]));
@@ -136,6 +150,7 @@ export const useUserStore = defineStore('user', () => {
     userId,
     roomId,
     userList,
+    authToken,
     login,
     loadFromCookie,
     connectSyncManager: connectSyncManager,

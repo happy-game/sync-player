@@ -35,8 +35,7 @@ export default defineConfig(({ mode }) => {
         '/api': {
           target: env.VITE_API_BASE_URL || 'http://localhost:3000',
           changeOrigin: true,
-          secure: false,
-          rewrite: (path) => path.replace(/^\/api/, '/api')
+          secure: false
         },
         '/socket': {
           target: env.VITE_WS_BASE_URL || 'ws://localhost:3000',
@@ -44,6 +43,11 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           secure: false,
           rewrite: (path) => path.replace(/^\/socket/, '')
+        },
+        '/sse': {
+          target: env.VITE_API_BASE_URL || 'http://localhost:3000',
+          changeOrigin: true,
+          secure: false
         }
       }
     }

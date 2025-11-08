@@ -3,7 +3,23 @@ import { defineStore } from 'pinia'
 import request from '@/utils/axios'
 import logger from '@/utils/logger'
 
-// define an interface for the playlist object
+// VideoSource interface
+export interface VideoSource {
+  id: number
+  playlistItemId: number
+  url: string
+  label: string
+  createdTime: string
+  lastActiveTime: string
+}
+
+// VideoSource input for API calls
+export interface VideoSourceInput {
+  url: string
+  label: string
+}
+
+// PlaylistItem interface
 export interface PlaylistItem {
   id: number
   roomId: number
@@ -11,14 +27,9 @@ export interface PlaylistItem {
   orderIndex: number
   playStatus: string
   createdTime: string
-  VideoSources: {
-    id: number
-    playlistItemId: number
-    url: string
-    createdTime: string
-    lastActiveTime: string
-  }[]
+  videoSources: VideoSource[]
 }
+
 export enum PlayStatus {
   NEW = 'new',
   PLAYING = 'playing',
@@ -26,147 +37,112 @@ export enum PlayStatus {
 }
 
 export const usePlaylistStore = defineStore('playlist', () => {
-  const playlist = ref<PlaylistItem[]>([]);
-  const playlistLength = computed(() => playlist.value.length);
-  const playlistChanged = ref(false);
-  // current playing video id is the id of the playlist item whose playStatus is PLAYING
+  const playlist = ref<PlaylistItem[]>([])
+  const playlistLength = computed(() => playlist.value.length)
+
   const currentVideoId = computed(() => {
-    const playingItem = playlist.value.find((video) => video.playStatus === PlayStatus.PLAYING);
-    return playingItem ? playingItem.id : -1;
-  });
+    const playingItem = playlist.value.find((video) => video.playStatus === PlayStatus.PLAYING)
+    return playingItem ? playingItem.id : -1
+  })
+
   const currentVideoItem = computed(() => {
-    return playlist.value.find((video) => video.playStatus === PlayStatus.PLAYING);
-  });
+    return playlist.value.find((video) => video.playStatus === PlayStatus.PLAYING)
+  })
 
-  async function setPlaylist(newPlaylist: PlaylistItem[]) {
-    // playlist.value = newPlaylist;
-    const validPlaylist = newPlaylist.filter((video) => video.playStatus !== PlayStatus.FINISHED);
-    playlist.value = validPlaylist;
-    playlistChanged.value = !playlistChanged.value; // FIXME: a better way to trigger the playlist update
-  }
-
-  async function addVideo(roomId: number, title:string, urls:string) {
+  // Fetch playlist from server
+  async function fetchPlaylist(roomId: number): Promise<void> {
     try {
-      const response = await request.post('/playlist/add', {
-        roomId,
-        title,
-        urls
-      });
-      if (response.status === 200) {
-        const playlistItemId = response.data.playlistItemId
-        playlist.value.push({
-          id: playlistItemId,
-          roomId,
-          title,
-          orderIndex: Math.max(...playlist.value.map((video) => video.orderIndex), -1) + 1,   // FIXME: a better way to calculate orderIndex
-          playStatus: PlayStatus.NEW,
-          createdTime: new Date().toISOString(),
-          VideoSources: urls.split(',').map((url, index) => ({
-              id: index,
-              playlistItemId,
-              url,
-              createdTime: new Date().toISOString(),
-              lastActiveTime: new Date().toISOString()
-          }))
-        });
-        playlistChanged.value = !playlistChanged.value; // FIXME: a better way to trigger the playlist update
-      }
-    }
-    catch (error) {
-      logger.error('Failed to add video:', error);
+      const response = await request.get('/playlist/query', { params: { roomId } })
+      playlist.value = response.data
+    } catch (error) {
+      logger.error('Failed to fetch playlist:', error)
+      throw error
     }
   }
 
-  async function deleteVideo(videoId: number) {
+  function setPlaylist(newPlaylist: PlaylistItem[]): void {
+    playlist.value = newPlaylist
+  }
+
+  async function addVideo(roomId: number, title: string, sources: VideoSourceInput[]): Promise<void> {
     try {
-      await request.delete('/playlist/delete', { data: { playlistItemId: videoId } });
-      playlist.value = playlist.value.filter((video) => video.id !== videoId);
-    }
-    catch (error) {
-      logger.error('Failed to delete video:', error);
+      await request.post('playlist/add', { title, sources })
+      // Refetch playlist to ensure consistency with server
+      await fetchPlaylist(roomId)
+    } catch (error) {
+      logger.error('Failed to add video:', error)
+      throw error
     }
   }
 
-  async function swapVideos(fromId: number, toId: number) {
-    const fromIndex = playlist.value.findIndex((video) => video.id === fromId);
-    const toIndex = playlist.value.findIndex((video) => video.id === toId);
+  async function deleteVideo(roomId: number, videoId: number): Promise<void> {
+    try {
+      await request.delete('playlist/delete', { data: { playlistItemId: videoId } })
+      await fetchPlaylist(roomId)
+    } catch (error) {
+      logger.error('Failed to delete video:', error)
+      throw error
+    }
+  }
 
-    const fromOrderIndex = playlist.value[fromIndex].orderIndex;
-    const toOrderIndex = playlist.value[toIndex].orderIndex;
-    // orderIndexList is an array of { playlistItemId: number, orderIndex: number }
+  async function swapVideos(roomId: number, fromId: number, toId: number): Promise<void> {
+    const fromIndex = playlist.value.findIndex((video) => video.id === fromId)
+    const toIndex = playlist.value.findIndex((video) => video.id === toId)
+
+    if (fromIndex === -1 || toIndex === -1) {
+      logger.error('Video not found in playlist')
+      return
+    }
+
     const orderIndexList = [
-      { playlistItemId: fromId, orderIndex: toOrderIndex },
-      { playlistItemId: toId, orderIndex: fromOrderIndex }
-    ];
-    try {
-      // update the orderIndex of the two videos in the server
-      await request.post('/playlist/updateOrder', { orderIndexList  });
-      const temp = playlist.value[fromIndex];
+      { playlistItemId: fromId, orderIndex: playlist.value[toIndex].orderIndex },
+      { playlistItemId: toId, orderIndex: playlist.value[fromIndex].orderIndex }
+    ]
 
-      // swap the two videos in local playlist
-      playlist.value[fromIndex] = playlist.value[toIndex];
-      playlist.value[fromIndex].orderIndex = fromOrderIndex;
-      playlist.value[toIndex] = temp;
-      playlist.value[toIndex].orderIndex = toOrderIndex;
-    }
-    catch (error) {
-      logger.error('Failed to swap videos:', error);
+    try {
+      await request.post('playlist/updateOrder', { orderIndexList })
+      await fetchPlaylist(roomId)
+    } catch (error) {
+      logger.error('Failed to swap videos:', error)
+      throw error
     }
   }
 
-  async function clearPlaylist(roomId: number) {
-    logger.info('Clearing playlist in roomId', roomId);
+  async function clearPlaylist(roomId: number): Promise<void> {
     try {
-      await request.delete('/playlist/clear', { data: { roomId: roomId } });
-      playlist.value = [];
-    }
-    catch (error) {
-      logger.error('Failed to clear playlist:', error);
+      await request.delete('playlist/clear', { data: { roomId } })
+      playlist.value = []
+    } catch (error) {
+      logger.error('Failed to clear playlist:', error)
+      throw error
     }
   }
 
-  async function switchVideo(videoId?: number) {
+  async function switchVideo(roomId: number, videoId?: number): Promise<void> {
     try {
       if (videoId === undefined) {
-        // 寻找第一个state为new的视频
-        const nextVideo = playlist.value.find((video) => video.playStatus === PlayStatus.NEW);
+        const nextVideo = playlist.value.find((video) => video.playStatus === PlayStatus.NEW)
         if (!nextVideo) {
-          logger.warn('No next video to play');
-          return;
+          logger.warn('No next video to play')
+          return
         }
-        videoId = nextVideo.id;
+        videoId = nextVideo.id
       }
 
-      await request.post('/playlist/switch', { playlistItemId: videoId });
-      
-      if (currentVideoId.value !== -1) {
-        // Remove the currently playing video if it is not the same as the videoId
-        if (currentVideoId.value !== videoId) {
-          playlist.value = playlist.value.filter(
-            (video) => video.id !== currentVideoId.value
-          );
-        }
-      }
-
-      // Move the videoId video to the first position and set its status to playing
-      const videoIndex = playlist.value.findIndex((video) => video.id === videoId);
-      if (videoIndex !== -1) {
-        const video = playlist.value.splice(videoIndex, 1)[0];
-        video.playStatus = PlayStatus.PLAYING;
-        playlist.value.unshift(video);
-      }
-      
-      playlistChanged.value = !playlistChanged.value; // FIXME: a better way to trigger the playlist update
+      await request.post('playlist/switch', { playlistItemId: videoId })
+      // Refetch playlist to ensure consistency with server
+      await fetchPlaylist(roomId)
     } catch (error) {
-      logger.error('Failed to switch video:', error);
+      logger.error('Failed to switch video:', error)
+      throw error
     }
   }
   return {
     playlist,
     playlistLength,
-    playlistChanged,
     currentVideoId,
     currentVideoItem,
+    fetchPlaylist,
     setPlaylist,
     addVideo,
     deleteVideo,
@@ -174,4 +150,4 @@ export const usePlaylistStore = defineStore('playlist', () => {
     clearPlaylist,
     switchVideo
   }
-});
+})

@@ -49,7 +49,7 @@ const playlistStore = usePlaylistStore();
 const title = ref('');
 const url = ref('');
 
-function addVideo() {
+async function addVideo() {
   logger.info('Add video');
   if (!title.value || !url.value) {
     logger.error('Title or url is empty');
@@ -59,7 +59,24 @@ function addVideo() {
     logger.error('RoomId is empty');
     return;
   }
-  playlistStore.addVideo(userStore.roomId, title.value, url.value);
+
+  try {
+    // 将 URL 字符串转换为 sources 数组格式
+    const sources = [{
+      url: url.value,
+      label: '默认'
+    }];
+
+    await playlistStore.addVideo(userStore.roomId, title.value, sources);
+
+    // 清空输入框
+    title.value = '';
+    url.value = '';
+
+    logger.info('Video added successfully');
+  } catch (error) {
+    logger.error('Failed to add video:', error);
+  }
 }
 onMounted(() => {
   logger.info('AddPlaylist mounted');

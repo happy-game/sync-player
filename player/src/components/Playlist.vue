@@ -1,51 +1,73 @@
 <template>
   <div v-if="userStore.username" class="playlist-container p-4">
     <h2 class="text-xl font-bold mb-4">播放列表</h2>
-    <!-- <button @click="clearPlaylist()" class="mb-4" v-if="playlistStore.playlist.length > 0">清空播放列表</button> -->
-    <Button @click="clearPlaylist()" class="mb-4" v-if="playlistStore.playlist.length > 0">清空播放列表</Button>
-    <div v-if="loading" class="text-center">
+    <Button
+      @click="clearPlaylist()"
+      class="mb-4"
+      v-if="playlistStore.playlist.length > 0"
+      :disabled="loading"
+    >
+      清空播放列表
+    </Button>
+    <div v-if="loading" class="text-center py-4">
       加载中...
     </div>
-    <div v-else-if="error" class="text-red-500">
+    <div v-else-if="error" class="text-red-500 py-4">
       {{ error }}
     </div>
     <ul v-else class="space-y-2">
-      <li 
-        v-for="item in playlistStore.playlist" 
+      <li
+        v-for="(item, index) in playlistStore.playlist"
         :key="item.id"
-        class="p-2 bg-gray-100 rounded hover:bg-gray-200 cursor-pointer"
+        :class="[
+          'p-3 rounded border',
+          item.playStatus === 'playing' ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-200'
+        ]"
       >
-        <div :class="['flex justify-between items-center', item.playStatus === 'playing' ? 'bg-green-100' : '']"> 
-          <span>{{ item.title }}</span>
-          <!-- Play Top Up Down Delete -->
-          <button 
-          @click="switchVideo(item.id)" 
-          class="disabled:opacity-50"
-          >
-          播放
-          </button>
-          <button 
-          @click="moveVideo(item.id, 'top')" 
-          :disabled="playlistStore.playlist[0].id === item.id"
-          class="disabled:opacity-50"
-          >
-          置顶
-          </button>
-          <button 
-          @click="moveVideo(item.id, 'up')" 
-          :disabled="playlistStore.playlist[0].id === item.id"
-          class="disabled:opacity-50"
-          >
-          上移
-          </button>
-          <button
-          @click="moveVideo(item.id, 'down')"
-          :disabled="playlistStore.playlist[playlistStore.playlist.length - 1].id === item.id"
-          class="disabled:opacity-50"
-          >
-          下移
-          </button>
-          <button @click="playlistStore.deleteVideo(item.id)">删除</button>
+        <div class="flex justify-between items-center gap-2">
+          <span class="flex-1 font-medium">{{ item.title }}</span>
+          <div class="flex gap-1">
+            <Button
+              size="sm"
+              variant="outline"
+              @click="switchVideo(item.id)"
+              :disabled="loading || item.playStatus === 'playing'"
+            >
+              播放
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              @click="moveVideo(item.id, 'top')"
+              :disabled="loading || index === 0"
+            >
+              置顶
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              @click="moveVideo(item.id, 'up')"
+              :disabled="loading || index === 0"
+            >
+              上移
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              @click="moveVideo(item.id, 'down')"
+              :disabled="loading || index === playlistStore.playlist.length - 1"
+            >
+              下移
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              @click="deleteVideo(item.id)"
+              :disabled="loading"
+            >
+              删除
+            </Button>
+          </div>
         </div>
       </li>
     </ul>
@@ -53,85 +75,125 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, onUnmounted } from 'vue';
-import request from '../utils/axios';
-import { useUserStore } from '../stores/user';
-import { usePlaylistStore } from '../stores/playlist';
-import logger from '../utils/logger';
-import { syncManager } from '@/utils/sync/syncManager';
+import { ref, onMounted, watch, onUnmounted } from 'vue'
+import { useUserStore } from '../stores/user'
+import { usePlaylistStore } from '../stores/playlist'
+import logger from '../utils/logger'
+import { syncManager } from '@/utils/sync/syncManager'
+import { Button } from './ui/button'
 
-import { Button } from './ui/button';
+const userStore = useUserStore()
+const playlistStore = usePlaylistStore()
 
-const userStore = useUserStore();
-const playlistStore = usePlaylistStore();
-
-const loading = ref(true);
-const error = ref<string | null>(null);
+const loading = ref(false)
+const error = ref<string | null>(null)
 
 const fetchPlaylist = async () => {
-  logger.info('fetch playlist');
-  if (!userStore.username) return;
-  
+  if (!userStore.roomId) return
+
   try {
-    loading.value = true;
-    const params = {
-      roomId: userStore.roomId
-    };
-    const response = await request.get('/playlist/query', { params });
-    await playlistStore.setPlaylist(response.data);
+    loading.value = true
+    error.value = null
+    await playlistStore.fetchPlaylist(userStore.roomId)
   } catch (err) {
-    logger.error('Fetch playlist error', err);
-    error.value = '获取播放列表失败';
+    logger.error('Fetch playlist error', err)
+    error.value = '获取播放列表失败'
   } finally {
-    loading.value = false;
+    loading.value = false
   }
-};
+}
 
-function moveVideo(videoId: number, direction: 'top' | 'up' | 'down') {
-  const index = playlistStore.playlist.findIndex((item) => item.id === videoId);
-  if (index === -1) return;
+async function moveVideo(videoId: number, direction: 'top' | 'up' | 'down') {
+  if (!userStore.roomId) return
 
-  let targetIndex = index;
+  const index = playlistStore.playlist.findIndex((item) => item.id === videoId)
+  if (index === -1) return
+
+  let targetIndex = index
   if (direction === 'top') {
-    targetIndex = 0;
+    targetIndex = 0
   } else if (direction === 'up') {
-    targetIndex = Math.max(0, index - 1);
+    targetIndex = Math.max(0, index - 1)
   } else if (direction === 'down') {
-    targetIndex = Math.min(playlistStore.playlist.length - 1, index + 1);
+    targetIndex = Math.min(playlistStore.playlist.length - 1, index + 1)
   }
 
-  const targetVideo = playlistStore.playlist[targetIndex];
-  playlistStore.swapVideos(videoId, targetVideo.id)
-  .then(() => {
-    logger.info('Move video success');
-  })
+  if (targetIndex === index) return
+
+  const targetVideo = playlistStore.playlist[targetIndex]
+
+  try {
+    loading.value = true
+    await playlistStore.swapVideos(userStore.roomId, videoId, targetVideo.id)
+  } catch (err) {
+    logger.error('Move video error', err)
+    error.value = '移动视频失败'
+  } finally {
+    loading.value = false
+  }
 }
 
-function clearPlaylist() {
-  if (!userStore.roomId) return;
-  playlistStore.clearPlaylist(userStore.roomId);
+async function clearPlaylist() {
+  if (!userStore.roomId) return
+
+  try {
+    loading.value = true
+    await playlistStore.clearPlaylist(userStore.roomId)
+  } catch (err) {
+    logger.error('Clear playlist error', err)
+    error.value = '清空播放列表失败'
+  } finally {
+    loading.value = false
+  }
 }
 
-function switchVideo(videoId: number) {
-  playlistStore.switchVideo(videoId);
+async function deleteVideo(videoId: number) {
+  if (!userStore.roomId) return
+
+  try {
+    loading.value = true
+    await playlistStore.deleteVideo(userStore.roomId, videoId)
+  } catch (err) {
+    logger.error('Delete video error', err)
+    error.value = '删除视频失败'
+  } finally {
+    loading.value = false
+  }
+}
+
+async function switchVideo(videoId: number) {
+  if (!userStore.roomId) return
+
+  try {
+    loading.value = true
+    await playlistStore.switchVideo(userStore.roomId, videoId)
+  } catch (err) {
+    logger.error('Switch video error', err)
+    error.value = '切换视频失败'
+  } finally {
+    loading.value = false
+  }
 }
 
 watch(() => userStore.username, (newValue) => {
   if (newValue) {
-    fetchPlaylist();
+    fetchPlaylist()
   }
-});
+})
 
 onMounted(() => {
-  syncManager.subscribe('updatePlaylist', handleUpdatePlaylist);
-});
+  syncManager.subscribe('updatePlaylist', handleUpdatePlaylist)
+  if (userStore.roomId) {
+    fetchPlaylist()
+  }
+})
 
 onUnmounted(() => {
-  syncManager.unsubscribe('updatePlaylist', handleUpdatePlaylist);
-});
+  syncManager.unsubscribe('updatePlaylist', handleUpdatePlaylist)
+})
 
 function handleUpdatePlaylist() {
-  logger.info('Received updatePlaylist message');
-  fetchPlaylist();
+  logger.info('Received updatePlaylist message')
+  fetchPlaylist()
 }
 </script>

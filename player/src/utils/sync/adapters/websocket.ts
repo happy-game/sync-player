@@ -10,13 +10,17 @@ export class WebSocketAdapter implements ISyncAdapter {
   connect(url: string, userId: number, roomId: number): void {
     logger.debug('连接WebSocket:', url);
     this.ws = new WebSocket(url);
-    
+
     this.ws.onopen = () => {
       logger.info('WebSocket连接已建立');
       if (this.ws) {
+        // Get JWT token from localStorage
+        const token = localStorage.getItem('authToken');
+
         this.ws.send(JSON.stringify({
           type: 'auth',
           payload: {
+            token,
             userId,
             roomId
           }
