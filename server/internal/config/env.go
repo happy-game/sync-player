@@ -33,6 +33,8 @@ type EnvConfig struct {
 	DBEnableSSL  bool
 	SyncProtocol     string
 	CorsAllowOrigins string
+	JWTSecret        string
+	JWTExpiryHours   int
 }
 
 var Env *EnvConfig
@@ -96,6 +98,8 @@ func LoadEnv() error {
 		DBEnableSSL:      getEnvBool("DB_ENABLE_SSL", false),
 		SyncProtocol:     getEnvValue("SYNC_PROTOCOL", "websocket"),
 		CorsAllowOrigins: getEnvValue("CORS_ALLOW_ORIGINS", "http://localhost:3000,http://localhost:5173,http://localhost:8080,http://127.0.0.1:3000,http://127.0.0.1:5173,http://127.0.0.1:8080"),
+		JWTSecret:        getEnvValue("JWT_SECRET", "your-default-secret-key-change-this"),
+		JWTExpiryHours:   getEnvInt("JWT_EXPIRY_HOURS", 24),
 	}
 
 	return validateEnv()

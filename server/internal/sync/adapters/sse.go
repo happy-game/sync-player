@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 	"sync-player-server/internal/config"
 	"sync-player-server/internal/database"
+	"sync-player-server/internal/utils"
 	synctypes "sync-player-server/internal/sync"
 	"time"
 
@@ -37,17 +39,43 @@ func NewSSEAdapter() *SSEAdapter {
 
 // HandleSSEConnect handles SSE connection requests
 func (a *SSEAdapter) HandleSSEConnect(c *gin.Context) {
-	userIDStr := c.Query("userId")
-	roomIDStr := c.Query("roomId")
-
 	var userID, roomID uint
-	if _, err := fmt.Sscanf(userIDStr, "%d", &userID); err != nil {
-		c.JSON(400, gin.H{"error": "Invalid userId"})
-		return
+
+	// Try JWT authentication first
+	token := c.Query("token")
+	if token == "" {
+		// Try from Authorization header
+		authHeader := c.GetHeader("Authorization")
+		if authHeader != "" {
+			parts := strings.SplitN(authHeader, " ", 2)
+			if len(parts) == 2 && parts[0] == "Bearer" {
+				token = parts[1]
+			}
+		}
 	}
-	if _, err := fmt.Sscanf(roomIDStr, "%d", &roomID); err != nil {
-		c.JSON(400, gin.H{"error": "Invalid roomId"})
-		return
+
+	if token != "" {
+		// Use JWT authentication
+		claims, err := utils.ValidateJWT(token)
+		if err != nil {
+			c.JSON(401, gin.H{"error": "Invalid or expired token"})
+			return
+		}
+		userID = claims.UserID
+		roomID = claims.RoomID
+	} else {
+		// Fallback to userId/roomId query parameters for backward compatibility
+		userIDStr := c.Query("userId")
+		roomIDStr := c.Query("roomId")
+
+		if _, err := fmt.Sscanf(userIDStr, "%d", &userID); err != nil {
+			c.JSON(400, gin.H{"error": "Invalid userId"})
+			return
+		}
+		if _, err := fmt.Sscanf(roomIDStr, "%d", &roomID); err != nil {
+			c.JSON(400, gin.H{"error": "Invalid roomId"})
+			return
+		}
 	}
 
 	// Set SSE headers

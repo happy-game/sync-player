@@ -6,6 +6,7 @@ import (
 	"sync"
 	"sync-player-server/internal/config"
 	"sync-player-server/internal/database"
+	"sync-player-server/internal/utils"
 	synctypes "sync-player-server/internal/sync"
 
 	"github.com/gin-gonic/gin"
@@ -67,11 +68,27 @@ func (a *WebSocketAdapter) handleMessage(conn *websocket.Conn, message []byte) {
 
 	if data.Type == "auth" {
 		var payload struct {
-			UserID uint `json:"userId"`
-			RoomID uint `json:"roomId"`
+			Token  string `json:"token"`
+			UserID uint   `json:"userId"`
+			RoomID uint   `json:"roomId"`
 		}
 		if err := json.Unmarshal(data.Payload, &payload); err == nil {
-			a.handleAuth(conn, payload.UserID, payload.RoomID)
+			// If token is provided, use JWT authentication
+			if payload.Token != "" {
+				claims, err := utils.ValidateJWT(payload.Token)
+				if err != nil {
+					config.Logger.Errorf("Invalid JWT token: %v", err)
+					conn.WriteJSON(map[string]string{
+						"type":  "error",
+						"error": "Invalid or expired token",
+					})
+					return
+				}
+				a.handleAuth(conn, claims.UserID, claims.RoomID)
+			} else {
+				// Fallback to userId/roomId for backward compatibility
+				a.handleAuth(conn, payload.UserID, payload.RoomID)
+			}
 		}
 	}
 }

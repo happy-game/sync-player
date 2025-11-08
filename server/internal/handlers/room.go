@@ -6,6 +6,7 @@ import (
 	"sync-player-server/internal/config"
 	"sync-player-server/internal/database"
 	"sync-player-server/internal/middleware"
+	"sync-player-server/internal/utils"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -118,9 +119,19 @@ func RoomJoin(c *gin.Context) {
 			return err
 		}
 
+		// Generate JWT token
+		token, err := utils.GenerateJWT(user.ID, user.Username, req.RoomID, newMember.IsAdmin)
+		if err != nil {
+			config.Logger.Errorf("Failed to generate JWT token: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate authentication token"})
+			return err
+		}
+
+		// Also set cookie for backward compatibility
 		middleware.SetUserInfoCookie(c, req.RoomID, user.ID)
 
 		c.JSON(http.StatusOK, gin.H{
+			"token":         token,
 			"roomId":        newMember.RoomID,
 			"userId":        newMember.UserID,
 			"isAdmin":       newMember.IsAdmin,

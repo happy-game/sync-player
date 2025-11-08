@@ -10,6 +10,8 @@ import (
 
 // SetupRoutes configures all routes
 func SetupRoutes(r *gin.Engine, wsAdapter *adapters.WebSocketAdapter, sseAdapter *adapters.SSEAdapter) {
+	// Try JWT first, then fall back to cookie for backward compatibility
+	r.Use(middleware.OptionalJWTAuth())
 	r.Use(middleware.ParseUserInfo())
 
 	r.GET("/health", func(c *gin.Context) {

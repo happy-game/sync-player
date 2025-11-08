@@ -25,7 +25,16 @@ export class SSEAdapter implements ISyncAdapter {
     this.url = url;
     this.userId = userId;
     this.roomId = roomId;
-    const fullUrl = `${this.url}/connect?userId=${userId}&roomId=${roomId}`;
+
+    // Get JWT token from localStorage
+    const token = localStorage.getItem('authToken');
+
+    // Add token as query parameter if available (EventSource doesn't support custom headers)
+    let fullUrl = `${this.url}/connect?userId=${userId}&roomId=${roomId}`;
+    if (token) {
+      fullUrl += `&token=${encodeURIComponent(token)}`;
+    }
+
     this.es = new EventSource(fullUrl);
 
     this.es.onmessage = (event) => this.handleMessage(event);
