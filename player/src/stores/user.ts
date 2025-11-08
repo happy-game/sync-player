@@ -55,12 +55,12 @@ export const useUserStore = defineStore('user', () => {
     }
 
     if (response.data.protocol === 'websocket') {
-      const wsUrl = baseURL.replace('http', 'ws').replace('api', 'socket') + '/ws';
+      const wsUrl = baseURL.replace('http', 'ws').replace('/api', '/ws');
       logger.info('Using WebSocket protocol, setting baseURL:', wsUrl);
       syncManager.setProtocol('websocket', wsUrl);
     }
     else if (response.data.protocol === 'sse') {
-      const sseUrl = baseURL.replace('api', 'sse');
+      const sseUrl = baseURL.replace('/api', '/sse');
       logger.info('Using SSE protocol, setting baseURL:', sseUrl);
       syncManager.setProtocol('sse', sseUrl);
     }

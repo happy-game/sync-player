@@ -18,41 +18,46 @@ func SetupRoutes(r *gin.Engine, wsAdapter *adapters.WebSocketAdapter, sseAdapter
 		c.JSON(200, gin.H{"status": "ok!"})
 	})
 
-	userGroup := r.Group("/user")
+	// API routes group
+	apiGroup := r.Group("/api")
 	{
-		userGroup.POST("/login", handlers.UserLogin)
-		userGroup.GET("/query", handlers.UserQuery)
+		userGroup := apiGroup.Group("/user")
+		{
+			userGroup.POST("/login", handlers.UserLogin)
+			userGroup.GET("/query", handlers.UserQuery)
+		}
+
+		roomGroup := apiGroup.Group("/room")
+		{
+			roomGroup.POST("/create", handlers.RoomCreate)
+			roomGroup.GET("/query", handlers.RoomQuery)
+			roomGroup.POST("/join", handlers.RoomJoin)
+			roomGroup.POST("/leave", handlers.RoomLeave)
+			roomGroup.GET("/queryOnlineUsers", handlers.RoomQueryOnlineUsers)
+		}
+
+		playlistGroup := apiGroup.Group("/playlist")
+		playlistGroup.Use(middleware.RequireAuth())
+		{
+			playlistGroup.POST("/add", handlers.PlaylistAdd)
+			playlistGroup.GET("/query", handlers.PlaylistQuery)
+			playlistGroup.DELETE("/delete", handlers.PlaylistDelete)
+			playlistGroup.DELETE("/clear", handlers.PlaylistClear)
+			playlistGroup.POST("/updateOrder", handlers.PlaylistUpdateOrder)
+			playlistGroup.POST("/switch", handlers.PlaylistSwitch)
+		}
+
+		syncGroup := apiGroup.Group("/sync")
+		syncGroup.Use(middleware.RequireAuth())
+		{
+			syncGroup.POST("/updateTime", handlers.SyncUpdateTime)
+			syncGroup.GET("/query", handlers.SyncQuery)
+			syncGroup.POST("/updatePause", handlers.SyncUpdatePause)
+			syncGroup.GET("/protocol", handlers.SyncProtocol)
+		}
 	}
 
-	roomGroup := r.Group("/room")
-	{
-		roomGroup.POST("/create", handlers.RoomCreate)
-		roomGroup.GET("/query", handlers.RoomQuery)
-		roomGroup.POST("/join", handlers.RoomJoin)
-		roomGroup.POST("/leave", handlers.RoomLeave)
-		roomGroup.GET("/queryOnlineUsers", handlers.RoomQueryOnlineUsers)
-	}
-
-	playlistGroup := r.Group("/playlist")
-	playlistGroup.Use(middleware.RequireAuth())
-	{
-		playlistGroup.POST("/add", handlers.PlaylistAdd)
-		playlistGroup.GET("/query", handlers.PlaylistQuery)
-		playlistGroup.DELETE("/delete", handlers.PlaylistDelete)
-		playlistGroup.DELETE("/clear", handlers.PlaylistClear)
-		playlistGroup.POST("/updateOrder", handlers.PlaylistUpdateOrder)
-		playlistGroup.POST("/switch", handlers.PlaylistSwitch)
-	}
-
-	syncGroup := r.Group("/sync")
-	syncGroup.Use(middleware.RequireAuth())
-	{
-		syncGroup.POST("/updateTime", handlers.SyncUpdateTime)
-		syncGroup.GET("/query", handlers.SyncQuery)
-		syncGroup.POST("/updatePause", handlers.SyncUpdatePause)
-		syncGroup.GET("/protocol", handlers.SyncProtocol)
-	}
-
+	// WebSocket and SSE endpoints remain at root level
 	if wsAdapter != nil {
 		r.GET("/ws", wsAdapter.HandleWebSocket)
 	}
