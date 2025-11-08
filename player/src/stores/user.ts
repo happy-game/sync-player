@@ -55,7 +55,7 @@ export const useUserStore = defineStore('user', () => {
     }
 
     if (response.data.protocol === 'websocket') {
-      const wsUrl = baseURL.replace('http', 'ws').replace('api', 'socket');
+      const wsUrl = baseURL.replace('http', 'ws').replace('api', 'socket') + '/ws';
       logger.info('Using WebSocket protocol, setting baseURL:', wsUrl);
       syncManager.setProtocol('websocket', wsUrl);
     }
