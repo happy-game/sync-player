@@ -224,4 +224,255 @@ test.describe('Room Management', () => {
             debugLog('⚠ Note: User was logged out after reload (cookie may have expired)');
         }
     });
+
+    /**
+     * Join non-existent room
+     * Expected outcome: Display error message
+     */
+    test('Join non-existent room shows error', async ({ page }) => {
+        const username = generateUsername();
+        const nonExistentRoomId = 999999; // Use a very large ID that doesn't exist
+
+        // First create a user
+        await page.goto('/');
+
+        // Get base URL from environment
+        const baseUrl = 'http://localhost:3000/api';
+
+        // Create user via API
+        const userResponse = await page.evaluate(async (data) => {
+            const response = await fetch(`${data.baseUrl}/user/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: data.username })
+            });
+            return response.json();
+        }, { baseUrl, username }) as any;
+
+        const userId = userResponse.id as number;
+        debugLog(`Created user ${username} with ID ${userId}`);
+
+        // Try to join non-existent room via API
+        const joinResponse = await page.evaluate(async (data) => {
+            try {
+                const response = await fetch(`${data.baseUrl}/room/join`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: data.userId,
+                        roomId: data.roomId
+                    })
+                });
+                return {
+                    ok: response.ok,
+                    status: response.status,
+                    data: await response.json()
+                };
+            } catch (error: any) {
+                return { ok: false, error: error.message };
+            }
+        }, { baseUrl, userId, roomId: nonExistentRoomId });
+
+        // Verify that joining failed
+        expect(joinResponse.ok).toBe(false);
+        expect(joinResponse.status).toBe(404);
+        expect((joinResponse.data as any).error).toContain('Room not found');
+
+        debugLog(`✓ PASSED: Joining non-existent room (ID: ${nonExistentRoomId}) correctly returned error: ${(joinResponse.data as any).error}`);
+    });
+
+    /**
+     * User leaves room
+     * Expected outcome: Other users in the room receive notification
+     */
+    test('User leaves room and other users are notified', async ({ browser }) => {
+        const roomName = generateRoomName();
+        const userA = generateUsername();
+        const userB = generateUsername();
+
+        const contextA = await browser.newContext();
+        const contextB = await browser.newContext();
+
+        const pageA = await contextA.newPage();
+        const pageB = await contextB.newPage();
+
+        try {
+            // Both users join the same room
+            debugLog(`User A (${userA}) and User B (${userB}) joining room "${roomName}"...`);
+            await loginAndJoinRoom(pageA, userA, roomName);
+            await loginAndJoinRoom(pageB, userB, roomName);
+
+            // Wait for connections to establish
+            await pageA.waitForTimeout(2000);
+            await pageB.waitForTimeout(2000);
+
+            // Verify both users are in the room
+            expect(await isInRoom(pageA)).toBe(true);
+            expect(await isInRoom(pageB)).toBe(true);
+
+            // Get initial user list count for User A
+            const initialUserCount = await pageA.evaluate(() => {
+                const store = (window as any).__PINIA__;
+                return store?.state.value.user?.userList?.length || 0;
+            });
+
+            debugLog(`Initial user count in room: ${initialUserCount}`);
+
+            // User B leaves the room by clearing cookies and reloading
+            debugLog(`User B leaving room...`);
+            await pageB.evaluate(() => {
+                // Clear all cookies
+                document.cookie.split(';').forEach((cookie: string) => {
+                    document.cookie = cookie.replace(/^ +/, '').replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
+                });
+                // Clear localStorage
+                localStorage.clear();
+            });
+
+            // Close User B's page to simulate disconnect
+            await pageB.close();
+
+            // Wait for User A to receive the update
+            await pageA.waitForTimeout(3000);
+
+            // Verify User A's user list updated (User B should be gone or marked offline)
+            const updatedUserCount = await pageA.evaluate(() => {
+                const store = (window as any).__PINIA__;
+                return store?.state.value.user?.userList?.length || 0;
+            });
+
+            debugLog(`Updated user count in room: ${updatedUserCount}`);
+
+            // The user count might decrease, or User B might be marked as offline
+            // Either way, verify that the user list changed
+            const userBStillOnline = await pageA.evaluate((username) => {
+                const store = (window as any).__PINIA__;
+                const userList = store?.state.value.user?.userList || [];
+                const userB = userList.find((u: any) => u.username === username);
+                return userB?.online || false;
+            }, userB);
+
+            expect(userBStillOnline).toBe(false);
+            debugLog(`✓ PASSED: User B left the room, User A's user list updated correctly (User B is offline)`);
+
+        } finally {
+            await pageA.close();
+            await contextA.close();
+            await contextB.close();
+        }
+    });
+
+    /**
+     * Room isolation - User joins different room
+     * Expected outcome: Users in original room are not affected
+     */
+    test('User joins different room - original room users unaffected', async ({ browser }) => {
+        const roomA = generateRoomName();
+        const roomC = generateRoomName();
+        const userA = generateUsername();
+        const userB = generateUsername();
+
+        const contextA = await browser.newContext();
+        const contextB = await browser.newContext();
+
+        const pageA = await contextA.newPage();
+        const pageB = await contextB.newPage();
+
+        try {
+            // Both users join Room A
+            debugLog(`User A (${userA}) and User B (${userB}) joining Room A "${roomA}"...`);
+            await loginAndJoinRoom(pageA, userA, roomA);
+            await loginAndJoinRoom(pageB, userB, roomA);
+
+            // Wait for connections
+            await pageA.waitForTimeout(2000);
+            await pageB.waitForTimeout(2000);
+
+            // Verify both are in Room A
+            const roomIdA_UserA = await pageA.evaluate(() => {
+                const cookies = document.cookie.split('; ');
+                const userInfo = cookies.find((c: string) => c.startsWith('userInfo='));
+                if (userInfo) {
+                    const data = JSON.parse(decodeURIComponent(userInfo.split('=')[1]));
+                    return data.roomId;
+                }
+                return null;
+            });
+
+            const roomIdA_UserB = await pageB.evaluate(() => {
+                const cookies = document.cookie.split('; ');
+                const userInfo = cookies.find((c: string) => c.startsWith('userInfo='));
+                if (userInfo) {
+                    const data = JSON.parse(decodeURIComponent(userInfo.split('=')[1]));
+                    return data.roomId;
+                }
+                return null;
+            });
+
+            expect(roomIdA_UserA).toBe(roomIdA_UserB);
+            debugLog(`✓ Both users in Room A (ID: ${roomIdA_UserA})`);
+
+            // User B leaves and joins Room C
+            debugLog(`User B leaving Room A and joining Room C "${roomC}"...`);
+            await pageB.evaluate(() => {
+                // Clear cookies and localStorage
+                document.cookie.split(';').forEach((cookie: string) => {
+                    document.cookie = cookie.replace(/^ +/, '').replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
+                });
+                localStorage.clear();
+            });
+
+            // User B joins Room C
+            await pageB.reload();
+            await loginAndJoinRoom(pageB, userB, roomC);
+            await pageB.waitForTimeout(2000);
+
+            // Verify User B is now in Room C
+            const roomIdC_UserB = await pageB.evaluate(() => {
+                const cookies = document.cookie.split('; ');
+                const userInfo = cookies.find((c: string) => c.startsWith('userInfo='));
+                if (userInfo) {
+                    const data = JSON.parse(decodeURIComponent(userInfo.split('=')[1]));
+                    return data.roomId;
+                }
+                return null;
+            });
+
+            expect(roomIdC_UserB).not.toBe(roomIdA_UserA);
+            debugLog(`✓ User B now in Room C (ID: ${roomIdC_UserB})`);
+
+            // Verify User A is still in Room A (unaffected)
+            const roomIdA_UserA_After = await pageA.evaluate(() => {
+                const cookies = document.cookie.split('; ');
+                const userInfo = cookies.find((c: string) => c.startsWith('userInfo='));
+                if (userInfo) {
+                    const data = JSON.parse(decodeURIComponent(userInfo.split('=')[1]));
+                    return data.roomId;
+                }
+                return null;
+            });
+
+            expect(roomIdA_UserA_After).toBe(roomIdA_UserA);
+            debugLog(`✓ User A still in Room A (ID: ${roomIdA_UserA_After})`);
+
+            // Verify User A's user list doesn't show User B anymore (or shows offline)
+            await pageA.waitForTimeout(2000);
+            const userBInRoomA = await pageA.evaluate((username) => {
+                const store = (window as any).__PINIA__;
+                const userList = store?.state.value.user?.userList || [];
+                const user = userList.find((u: any) => u.username === username);
+                return user?.online || false;
+            }, userB);
+
+            expect(userBInRoomA).toBe(false);
+            debugLog(`✓ PASSED: Room isolation verified - User A in Room A is unaffected by User B joining Room C`);
+
+        } finally {
+            await pageA.close();
+            await pageB.close();
+            await contextA.close();
+            await contextB.close();
+        }
+    });
 });
+
