@@ -42,58 +42,77 @@ export default defineConfig({
     /* Run tests headless by default (no X server required).
      * Set HEADLESS=false to run with browser UI for debugging.
      */
-    headless: process.env.HEADLESS !== 'false'
+    headless: process.env.HEADLESS !== 'false',
+
+    /* Slow down operations for easier observation.
+     * Set SLOW_MO=500 to add 500ms delay between actions.
+     */
+    launchOptions: {
+      slowMo: process.env.SLOW_MO ? Number.parseInt(process.env.SLOW_MO) : 0
+    }
   },
 
   /* Configure projects for major browsers */
-  projects: [
-    {
-      name: 'chromium',
-      use: {
-        ...devices['Desktop Chrome']
+  projects: process.env.HEADLESS === 'false'
+    ? [
+      // In non-headless mode, only run chromium for easier debugging
+      {
+        name: 'chromium',
+        use: {
+          ...devices['Desktop Chrome']
+        }
       }
-    },
-    {
-      name: 'firefox',
-      use: {
-        ...devices['Desktop Firefox']
+    ]
+    : [
+      // In headless mode, run all browsers
+      {
+        name: 'chromium',
+        use: {
+          ...devices['Desktop Chrome']
+        }
+      },
+      {
+        name: 'firefox',
+        use: {
+          ...devices['Desktop Firefox']
+        }
+      },
+      {
+        name: 'webkit',
+        use: {
+          ...devices['Desktop Safari']
+        }
       }
-    },
-    {
-      name: 'webkit',
-      use: {
-        ...devices['Desktop Safari']
-      }
-    }
+    ],
 
-    /* Test against mobile viewports. */
-    // {
-    //   name: 'Mobile Chrome',
-    //   use: {
-    //     ...devices['Pixel 5'],
-    //   },
-    // },
-    // {
-    //   name: 'Mobile Safari',
-    //   use: {
-    //     ...devices['iPhone 12'],
-    //   },
-    // },
+  /* Test against mobile viewports. */
+  // {
+  //   name: 'Mobile Chrome',
+  //   use: {
+  //     ...devices['Pixel 5'],
+  //   },
+  // },
+  // {
+  //   name: 'Mobile Safari',
+  //   use: {
+  //     ...devices['iPhone 12'],
+  //   },
+  // },
 
-    /* Test against branded browsers. */
-    // {
-    //   name: 'Microsoft Edge',
-    //   use: {
-    //     channel: 'msedge',
-    //   },
-    // },
-    // {
-    //   name: 'Google Chrome',
-    //   use: {
-    //     channel: 'chrome',
-    //   },
-    // },
-  ],
+  /* Test against branded browsers. */
+  // {
+  //   name: 'Microsoft Edge',
+  //   use: {
+  //     channel: 'msedge',
+  //   },
+  // },
+  // {
+  //   name: 'Google Chrome',
+  //   use: {
+  //     channel: 'chrome',
+  //   },
+  // },
+
 
   /* Folder for test artifacts such as screenshots, videos, traces, etc. */
   // outputDir: 'test-results/',
