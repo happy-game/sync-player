@@ -4,5 +4,8 @@ import { test, expect } from '@playwright/test';
 // https://playwright.dev/docs/intro
 test('visits the app root url', async ({ page }) => {
   await page.goto('/');
-  await expect(page.locator('div.greetings > h1')).toHaveText('You did it!');
+  // Verify page title
+  await expect(page).toHaveTitle(/sync-player/);
+  // Verify login modal is visible
+  await expect(page.locator('h2:has-text("登录")')).toBeVisible();
 })

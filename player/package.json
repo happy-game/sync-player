@@ -28,7 +28,7 @@
     "vue": "^3.5.12"
   },
   "devDependencies": {
-    "@playwright/test": "^1.48.1",
+    "@playwright/test": "^1.57.0",
     "@tsconfig/node20": "^20.1.4",
     "@types/axios": "^0.9.36",
     "@types/node": "^20.17.0",
