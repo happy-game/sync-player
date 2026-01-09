@@ -80,6 +80,12 @@ function initPlayer() {
 	player = videojs("videojs-player", options);
   
 	if (player) {
+    if (import.meta.env.DEV) {
+      console.log('Exposing player and videojs to window for debugging');
+      (window as any).player = player;
+      (window as any).videojs = videojs;
+    }
+
     player.on('canplay', () => {
       if (please_enable_sync) {
         enable_sync = true;
