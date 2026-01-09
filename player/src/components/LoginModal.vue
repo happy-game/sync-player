@@ -74,6 +74,7 @@ import { ref } from 'vue';
 import { useUserStore } from '../stores/user';
 import { env } from '../config/env';
 import { updateAxiosBaseUrl } from '@/utils/axios';
+import { CookieManager, COOKIE_NAMES, type UrlConfigCookie } from '@/utils/cookies';
 
 const props = defineProps<{
   show: boolean
@@ -88,19 +89,17 @@ const roomName = ref('');
 const userStore = useUserStore();
 
 const apiBaseUrl = ref('');
-const showAdvanced = ref(false); // 控制高级选项的显示状态
+const showAdvanced = ref(false);
 
-// 计算默认的 API Base URL
 const defaultApiBaseUrl = env.API_BASE_URL;
 
 const handleSubmit = async () => {
   try {
     if (apiBaseUrl.value) {
-      const finalApiBaseUrl = apiBaseUrl.value;
-      document.cookie = `urlConfig=${JSON.stringify({
-        apiBaseUrl: finalApiBaseUrl,
-      })}; path=/`;
-      updateAxiosBaseUrl(finalApiBaseUrl);
+      CookieManager.setJSON<UrlConfigCookie>(COOKIE_NAMES.URL_CONFIG, {
+        apiBaseUrl: apiBaseUrl.value,
+      });
+      updateAxiosBaseUrl(apiBaseUrl.value);
     }
     
     await userStore.login(username.value, roomName.value);

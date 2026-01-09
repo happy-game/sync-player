@@ -109,6 +109,7 @@ export const useUserStore = defineStore('user', () => {
 
       // 保存 token
       authToken.value = token;
+      localStorage.setItem('authToken', token);
 
       // 保存会话
       saveSession(newUserId, newUsername, newRoomId, newRoomName, token);

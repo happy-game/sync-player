@@ -2,28 +2,18 @@ import axios from 'axios';
 import type { AxiosInstance } from 'axios';
 import { env } from '../config/env';
 import logger from './logger';
+import { CookieManager, COOKIE_NAMES, type UrlConfigCookie } from './cookies';
 
 // 创建axios实例
 let request: AxiosInstance;
 
 function initAxios() {
-  // 从cookie中获取URL配置
-  const urlConfig = document.cookie
-    .split('; ')
-    .find(row => row.startsWith('urlConfig='));
-  
   let baseURL = env.API_BASE_URL;
-  
-  if (urlConfig) {
-    try {
-      const config = JSON.parse(decodeURIComponent(urlConfig.split('=')[1]));
-      if (config.apiBaseUrl) {
-        baseURL = config.apiBaseUrl;
-        logger.info('Using API base URL from cookie:', baseURL);
-      }
-    } catch (error) {
-      logger.error('Failed to parse URL config from cookie:', error);
-    }
+
+  const urlConfig = CookieManager.getJSON<UrlConfigCookie>(COOKIE_NAMES.URL_CONFIG);
+  if (urlConfig?.apiBaseUrl) {
+    baseURL = urlConfig.apiBaseUrl;
+    logger.info('Using API base URL from cookie:', baseURL);
   }
 
   request = axios.create({
@@ -60,7 +50,7 @@ function initAxios() {
       return response;
     },
     error => {
-    //   logger.error('Response error:', error);
+      //   logger.error('Response error:', error);
       return Promise.reject(error);
     }
   );
@@ -71,17 +61,10 @@ function initAxios() {
 function updateAxiosBaseUrl(apiBaseUrl?: string) {
   if (apiBaseUrl) {
     request.defaults.baseURL = apiBaseUrl;
-  }
-  else {
-    // 从cookie中获取URL配置
-    const urlConfig = document.cookie
-      .split('; ')
-      .find(row => row.startsWith('urlConfig='));
-    if (urlConfig) {
-      const config = JSON.parse(decodeURIComponent(urlConfig.split('=')[1]));
-      if (config.apiBaseUrl) {
-        request.defaults.baseURL = config.apiBaseUrl;
-      }
+  } else {
+    const urlConfig = CookieManager.getJSON<UrlConfigCookie>(COOKIE_NAMES.URL_CONFIG);
+    if (urlConfig?.apiBaseUrl) {
+      request.defaults.baseURL = urlConfig.apiBaseUrl;
     }
   }
 }
