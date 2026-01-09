@@ -33,8 +33,9 @@ interface SyncData {
 }
 
 let player: Player | null = null;
-let enable_sync = true;
-let please_enable_sync = false;
+// 用于防止 seek 事件循环的计数器
+let suppressSeekCount = 0;
+
 const syncThreshold = 1;
 
 const playlistStore = usePlaylistStore();
@@ -86,12 +87,7 @@ function initPlayer() {
       (window as any).videojs = videojs;
     }
 
-    player.on('canplay', () => {
-      if (please_enable_sync) {
-        enable_sync = true;
-        please_enable_sync = false;
-      }
-    });
+
 	}
 
 	player?.on('seeked', sendSyncData);
@@ -103,9 +99,16 @@ function initPlayer() {
 }
 
 async function sendSyncData() {
-  if (!enable_sync || !syncEnabled.value) {
+  if (!syncEnabled.value) {
     return;
   }
+  
+  // 如果计数器大于0，说明是系统触发的 seek，消耗一次计数并不发送同步
+  if (suppressSeekCount > 0) {
+    suppressSeekCount--;
+    return;
+  }
+
   const currentTime = player?.currentTime();
   const timestamp = Date.now();
   const paused = player?.paused();
@@ -127,16 +130,11 @@ async function sendSyncData() {
 }
 
 async function updatePlayer(data: SyncData) {
-  if (!enable_sync || !syncEnabled.value) {  // 添加syncEnabled.value的检查
+  if (!syncEnabled.value) {  // 添加syncEnabled.value的检查
     logger.info('Sync disabled');
     return;
   }
-  enable_sync = false;
-  please_enable_sync = true;
-  setTimeout(() => {
-    enable_sync = true;
-    please_enable_sync = false;
-  }, 1000 * 10);  // 设置10s的等待时间， 超时后自动开启同步
+
   const currentTime = player?.currentTime();
   if (currentTime === undefined) {  // fucking typescript
     return;
@@ -144,7 +142,11 @@ async function updatePlayer(data: SyncData) {
   const diff = Math.abs(currentTime - data.time);
   if (diff > syncThreshold) {
     logger.info('Updating player time', data.time);
+    
+    // 标记这次 seek 是内部触发的，应该被忽略
+    suppressSeekCount++;
     player?.currentTime(data.time);
+    
     player?.play(); // FIXME: always play
     logger.info('Player time updated');
   }
@@ -232,12 +234,12 @@ async function handleSourceChange(newSource: string) {
   logger.info('切换视频源:', newSource)
   if (player) {
     // 关闭同步
-    enable_sync = false;
-    please_enable_sync = true;
-    setTimeout(() => {
-      enable_sync = true;
-      please_enable_sync = false;
-    }, 1000 * 10);  // 设置10s的等待时间， 超时后自动开启同步
+    // enable_sync = false;
+    // please_enable_sync = true;
+    // setTimeout(() => {
+    //   enable_sync = true;
+    //   please_enable_sync = false;
+    // }, 1000 * 10);  // 设置10s的等待时间， 超时后自动开启同步
     const currentTime = player.currentTime()
     const paused = player.paused()
     
@@ -247,6 +249,8 @@ async function handleSourceChange(newSource: string) {
     })
     
     player.one('loadedmetadata', () => {
+      // 恢复时间也会触发 seek，需要抑制
+      suppressSeekCount++;
       player?.currentTime(currentTime)
       if (!paused) {
         player?.play()
@@ -268,8 +272,6 @@ defineExpose({
   },
   toggleSync: () => {
     syncEnabled.value = !syncEnabled.value;
-    enable_sync = syncEnabled.value;
-    please_enable_sync = false;
     logger.info(`同步已${syncEnabled.value ? '启用' : '禁用'}`);
   },
   getSyncState: () => syncEnabled.value
