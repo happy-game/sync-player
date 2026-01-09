@@ -1,0 +1,49 @@
+{
+    "testVideos": [
+        {
+            "url": "http://vjs.zencdn.net/v/oceans.mp4",
+            "title": "Oceans - Test Video 1",
+            "duration": 46,
+            "description": "Ocean video from Video.js CDN"
+        },
+        {
+            "url": "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+            "title": "Big Buck Bunny",
+            "duration": 596,
+            "description": "Big Buck Bunny animation"
+        },
+        {
+            "url": "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+            "title": "Elephants Dream",
+            "duration": 653,
+            "description": "Elephants Dream animation"
+        },
+        {
+            "url": "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+            "title": "For Bigger Blazes",
+            "duration": 15,
+            "description": "Short test video for quick auto-switch testing"
+        },
+        {
+            "url": "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+            "title": "For Bigger Escapes",
+            "duration": 15,
+            "description": "Short test video for quick auto-switch testing"
+        }
+    ],
+    "sync": {
+        "threshold": 2,
+        "waitTime": 3000,
+        "stressTestDuration": 60000,
+        "longPlaybackDuration": 300000
+    },
+    "concurrency": {
+        "maxUsers": 5,
+        "simultaneousOperationDelay": 100
+    },
+    "edgeCases": {
+        "networkDelayMs": 2000,
+        "rapidSeekCount": 10,
+        "rapidSeekInterval": 200
+    }
+}
