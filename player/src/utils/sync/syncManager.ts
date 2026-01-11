@@ -1,4 +1,4 @@
-import type { ISyncManager, ISyncMessage, SyncEventHandler, SyncConfig } from '@/types/sync';
+import type { ISyncManager, SyncMessage, SyncEventHandler, SyncConfig } from '@/types/sync';
 import { WebSocketAdapter } from './adapters/websocket';
 import { SSEAdapter } from './adapters/sse';
 import logger from '@/utils/logger';
@@ -31,7 +31,7 @@ export class SyncManager implements ISyncManager {
 
     // 根据配置创建适配器
     this.adapter = this.createAdapter();
-    
+
     // 设置消息处理
     this.adapter.onMessage((data) => {
       logger.debug('收到消息:', data);
@@ -121,7 +121,7 @@ export class SyncManager implements ISyncManager {
     }
   }
 
-  send(message: ISyncMessage): void {
+  send(message: SyncMessage): void {
     if (this.adapter) {
       this.adapter.send(message);
     } else {
