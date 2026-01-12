@@ -7,7 +7,6 @@ import (
 	"sync-player-server/internal/config"
 	"sync-player-server/internal/database"
 	"sync-player-server/internal/utils"
-	synctypes "sync-player-server/internal/sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -123,7 +122,7 @@ func (a *WebSocketAdapter) handleClose(conn *websocket.Conn) {
 }
 
 // Broadcast sends a message to all users in a room except excluded users
-func (a *WebSocketAdapter) Broadcast(roomID uint, message synctypes.SyncMessage, excludedUserIDs []uint) {
+func (a *WebSocketAdapter) Broadcast(roomID uint, message interface{}, excludedUserIDs []uint) {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
@@ -145,7 +144,7 @@ func (a *WebSocketAdapter) Broadcast(roomID uint, message synctypes.SyncMessage,
 }
 
 // SendToUsers sends a message to specific users
-func (a *WebSocketAdapter) SendToUsers(roomID uint, userIDs []uint, message synctypes.SyncMessage) {
+func (a *WebSocketAdapter) SendToUsers(roomID uint, userIDs []uint, message interface{}) {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 

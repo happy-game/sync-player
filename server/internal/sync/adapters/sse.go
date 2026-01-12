@@ -9,7 +9,6 @@ import (
 	"sync-player-server/internal/config"
 	"sync-player-server/internal/database"
 	"sync-player-server/internal/utils"
-	synctypes "sync-player-server/internal/sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -17,11 +16,11 @@ import (
 
 // SSEClient represents an SSE client connection
 type SSEClient struct {
-	UserID   uint
-	RoomID   uint
-	Writer   gin.ResponseWriter
-	Flusher  http.Flusher
-	Done     chan bool
+	UserID  uint
+	RoomID  uint
+	Writer  gin.ResponseWriter
+	Flusher http.Flusher
+	Done    chan bool
 }
 
 // SSEAdapter implements ISyncAdapter using Server-Sent Events
@@ -162,7 +161,7 @@ func (a *SSEAdapter) handleDisconnect(roomID, userID uint) {
 }
 
 // Broadcast sends a message to all users in a room except excluded users
-func (a *SSEAdapter) Broadcast(roomID uint, message synctypes.SyncMessage, excludedUserIDs []uint) {
+func (a *SSEAdapter) Broadcast(roomID uint, message interface{}, excludedUserIDs []uint) {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
@@ -178,13 +177,19 @@ func (a *SSEAdapter) Broadcast(roomID uint, message synctypes.SyncMessage, exclu
 
 	for userID, client := range roomClients {
 		if !excludeMap[userID] {
-			a.sendEvent(client, message.Type, message)
+			jsonData, err := json.Marshal(message)
+			if err != nil {
+				config.Logger.Errorf("Failed to marshal message: %v", err)
+				continue
+			}
+			fmt.Fprintf(client.Writer, "data: %s\n\n", jsonData)
+			client.Flusher.Flush()
 		}
 	}
 }
 
 // SendToUsers sends a message to specific users
-func (a *SSEAdapter) SendToUsers(roomID uint, userIDs []uint, message synctypes.SyncMessage) {
+func (a *SSEAdapter) SendToUsers(roomID uint, userIDs []uint, message interface{}) {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
@@ -195,7 +200,13 @@ func (a *SSEAdapter) SendToUsers(roomID uint, userIDs []uint, message synctypes.
 
 	for _, userID := range userIDs {
 		if client, ok := roomClients[userID]; ok {
-			a.sendEvent(client, message.Type, message)
+			jsonData, err := json.Marshal(message)
+			if err != nil {
+				config.Logger.Errorf("Failed to marshal message: %v", err)
+				continue
+			}
+			fmt.Fprintf(client.Writer, "data: %s\n\n", jsonData)
+			client.Flusher.Flush()
 		}
 	}
 }
