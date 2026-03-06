@@ -1,5 +1,5 @@
 {
-    "playerBaseUrl": "http://127.0.0.1:5173",
+    "playerBaseUrl": "http://localhost:5173",
     "testVideos": [
         {
             "url": "http://vjs.zencdn.net/v/oceans.mp4",
