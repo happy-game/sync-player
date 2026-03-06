@@ -48,6 +48,7 @@ export default defineConfig({
      * Set SLOW_MO=500 to add 500ms delay between actions.
      */
     launchOptions: {
+      args: ['--autoplay-policy=no-user-gesture-required'],
       slowMo: process.env.SLOW_MO ? Number.parseInt(process.env.SLOW_MO) : 0
     }
   },

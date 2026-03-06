@@ -1,7 +1,8 @@
 <template>
-	<div class="w-full h-full">
+	<div class="w-full h-full" data-testid="video-player">
 		<video
 			id="videojs-player"
+			data-testid="video-player-element"
 			class="video-js vjs-big-play-centered w-full h-full"
 		>
 			<p class="vjs-no-js">

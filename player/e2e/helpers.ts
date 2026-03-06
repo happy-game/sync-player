@@ -25,6 +25,16 @@ export interface PlaylistItemInput {
     url: string;
 }
 
+export interface PlaybackState {
+    paused: boolean;
+    muted: boolean;
+    currentTime: number;
+    duration: number | null;
+    source: string | null;
+    ended: boolean;
+    readyState: number;
+}
+
 function createUniqueName(prefix: string): string {
     return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -35,6 +45,18 @@ function getAddPlaylistCard(page: Page) {
 
 function getPlaylistContainer(page: Page) {
     return page.locator('div.playlist-container').first();
+}
+
+function getVideoPlayer(page: Page) {
+    return page.getByTestId('video-player');
+}
+
+function getVideoElement(page: Page) {
+    return getVideoPlayer(page).locator('.vjs-tech').first();
+}
+
+function getPlayToggleButton(page: Page) {
+    return getVideoPlayer(page).locator('.vjs-play-control').first();
 }
 
 export async function waitForUi(page: Page, delayMs: number = DEFAULT_E2E_DELAY_MS): Promise<void> {
@@ -121,4 +143,76 @@ export async function deletePlaylistItem(page: Page, title: string): Promise<voi
     await expect(playlistItem).toBeVisible();
     await playlistItem.getByRole('button', { name: '删除' }).click();
     await expect(playlistItem).toBeHidden();
+}
+
+export async function getPlaybackState(page: Page): Promise<PlaybackState> {
+    const videoElement = getVideoElement(page);
+    await expect(videoElement).toBeVisible();
+
+    return videoElement.evaluate((element) => {
+        const video = element as HTMLVideoElement;
+        return {
+            paused: video.paused,
+            muted: video.muted,
+            currentTime: video.currentTime,
+            duration: Number.isFinite(video.duration) ? video.duration : null,
+            source: video.currentSrc || null,
+            ended: video.ended,
+            readyState: video.readyState,
+        };
+    });
+}
+
+export async function setMuted(page: Page, muted: boolean = true): Promise<void> {
+    const videoElement = getVideoElement(page);
+    await expect(videoElement).toBeVisible();
+
+    await videoElement.evaluate((element, shouldMute) => {
+        const video = element as HTMLVideoElement;
+        video.muted = shouldMute;
+        video.defaultMuted = shouldMute;
+    }, muted);
+
+    await expect.poll(async () => (await getPlaybackState(page)).muted).toBe(muted);
+}
+
+export async function play(page: Page): Promise<void> {
+    await expect(getVideoPlayer(page)).toBeVisible();
+    await expect.poll(async () => (await getPlaybackState(page)).source).not.toBeNull();
+
+    await setMuted(page, true);
+
+    const playbackState = await getPlaybackState(page);
+    if (!playbackState.paused) {
+        return;
+    }
+
+    await getPlayToggleButton(page).click();
+    await expect.poll(async () => (await getPlaybackState(page)).paused).toBe(false);
+}
+
+export async function pause(page: Page): Promise<void> {
+    await expect(getVideoPlayer(page)).toBeVisible();
+    await expect.poll(async () => (await getPlaybackState(page)).source).not.toBeNull();
+
+    const playbackState = await getPlaybackState(page);
+    if (playbackState.paused) {
+        return;
+    }
+
+    await getPlayToggleButton(page).click();
+    await expect.poll(async () => (await getPlaybackState(page)).paused).toBe(true);
+}
+
+export async function seekTo(page: Page, seconds: number): Promise<void> {
+    const videoElement = getVideoElement(page);
+    await expect(videoElement).toBeVisible();
+    await expect.poll(async () => (await getPlaybackState(page)).readyState).toBeGreaterThan(0);
+
+    await videoElement.evaluate((element, targetTime) => {
+        const video = element as HTMLVideoElement;
+        video.currentTime = targetTime;
+    }, seconds);
+
+    await expect.poll(async () => (await getPlaybackState(page)).currentTime).toBeCloseTo(seconds, 1);
 }
