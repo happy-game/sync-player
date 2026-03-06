@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { addPlaylistItem, deletePlaylistItem, enterPlayerPage, getPlaybackState, getPlaylistItems, login, logout, pause, play, seekTo, setMuted, TEST_VIDEOS, waitForUi } from './helpers';
+import { addPlaylistItem, deletePlaylistItem, enterPlayerPage, expectRoomUsers, getPlaybackState, getPlaylistItems, getRoomInfo, login, logout, pause, play, seekTo, setMuted, TEST_VIDEOS, waitForUi } from './helpers.js';
 
 test.describe('E2E Helper Functions Verification', () => {
     test('enter player page', async ({ page }) => {
@@ -27,6 +27,36 @@ test.describe('E2E Helper Functions Verification', () => {
         await expect(page.locator('h2:has-text("登录")')).toBeVisible();
         await expect.poll(async () => page.evaluate(() => localStorage.getItem('authToken'))).toBeNull();
         await expect.poll(async () => page.evaluate(() => localStorage.getItem('sync-player-session'))).toBeNull();
+    });
+
+    test('room helpers', async ({ browser }) => {
+        const firstContext = await browser.newContext();
+        const secondContext = await browser.newContext();
+        const firstPage = await firstContext.newPage();
+        const secondPage = await secondContext.newPage();
+
+        try {
+            const firstLogin = await login(firstPage);
+            const secondLogin = await login(secondPage, { roomName: firstLogin.roomName });
+
+            await firstPage.reload();
+            await secondPage.reload();  // 刷新页面，验证用户列表是否正确
+            await expectRoomUsers(firstPage, [firstLogin.username, secondLogin.username]);
+            await expectRoomUsers(secondPage, [firstLogin.username, secondLogin.username]);
+
+            const firstRoomInfo = await getRoomInfo(firstPage);
+            const secondRoomInfo = await getRoomInfo(secondPage);
+
+            expect(firstRoomInfo.roomName).toBe(firstLogin.roomName);
+            expect(firstRoomInfo.roomId).toBeGreaterThan(0);
+            expect(firstRoomInfo.roomId).toBe(secondRoomInfo.roomId);
+            expect(firstRoomInfo.users.find((user) => user.username === firstLogin.username)?.isCurrentUser).toBe(true);
+            expect(firstRoomInfo.users.find((user) => user.username === secondLogin.username)?.online).toBe(true);
+            expect(secondRoomInfo.users.find((user) => user.username === secondLogin.username)?.isCurrentUser).toBe(true);
+        } finally {
+            await firstContext.close();
+            await secondContext.close();
+        }
     });
 
     test('playlist helpers', async ({ page }) => {

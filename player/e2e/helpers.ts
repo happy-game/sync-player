@@ -35,6 +35,18 @@ export interface PlaybackState {
     readyState: number;
 }
 
+export interface RoomUserInfo {
+    username: string;
+    online: boolean;
+    isCurrentUser: boolean;
+}
+
+export interface RoomInfo {
+    roomName: string;
+    roomId: number;
+    users: RoomUserInfo[];
+}
+
 function createUniqueName(prefix: string): string {
     return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -57,6 +69,10 @@ function getVideoElement(page: Page) {
 
 function getPlayToggleButton(page: Page) {
     return getVideoPlayer(page).locator('.vjs-play-control').first();
+}
+
+function getUserPanel(page: Page) {
+    return page.locator('div.bg-white.rounded-lg.shadow-lg.p-4.w-80').filter({ hasText: '房间:' }).first();
 }
 
 export async function waitForUi(page: Page, delayMs: number = DEFAULT_E2E_DELAY_MS): Promise<void> {
@@ -97,7 +113,7 @@ export async function login(page: Page, options: LoginOptions = {}): Promise<{ u
 }
 
 export async function logout(page: Page): Promise<void> {
-    const userPanel = page.locator('div.bg-white.rounded-lg.shadow-lg.p-4.w-80').filter({ hasText: '房间:' }).first();
+    const userPanel = getUserPanel(page);
 
     await expect(userPanel).toBeVisible();
 
@@ -113,6 +129,58 @@ export async function logout(page: Page): Promise<void> {
 
     await expect.poll(async () => page.evaluate(() => localStorage.getItem('authToken'))).toBeNull();
     await expect.poll(async () => page.evaluate(() => localStorage.getItem('sync-player-session'))).toBeNull();
+}
+
+export async function getRoomInfo(page: Page): Promise<RoomInfo> {
+    const userPanel = getUserPanel(page);
+    await expect(userPanel).toBeVisible();
+
+    const roomHeader = userPanel.locator('div.text-sm.font-medium').first();
+    const roomHeaderText = (await roomHeader.textContent())?.trim() ?? '';
+    const roomMatch = roomHeaderText.match(/^房间:\s*(.+)\((\d+)\)$/);
+
+    if (!roomMatch) {
+        throw new Error(`Failed to parse room info from text: ${roomHeaderText}`);
+    }
+
+    const [, roomName, roomIdText] = roomMatch;
+
+    const userRows = userPanel.locator('div.space-y-2 > div');
+    const rowCount = await userRows.count();
+    const users: RoomUserInfo[] = [];
+
+    for (let index = 0; index < rowCount; index += 1) {
+        const row = userRows.nth(index);
+        const usernameNode = row.locator('div.text-sm').last();
+        const username = (await usernameNode.textContent())?.trim();
+
+        if (!username) {
+            continue;
+        }
+
+        const statusDot = row.locator('div.h-2.w-2.rounded-full').first();
+        const statusClass = await statusDot.getAttribute('class');
+        users.push({
+            username,
+            online: statusClass?.includes('bg-green-500') ?? false,
+            isCurrentUser: index === 0,
+        });
+    }
+
+    return {
+        roomName: roomName.trim(),
+        roomId: Number.parseInt(roomIdText, 10),
+        users,
+    };
+}
+
+export async function expectRoomUsers(page: Page, expectedUsernames: string[]): Promise<void> {
+    const sortedExpectedUsernames = [...expectedUsernames].sort();
+
+    await expect.poll(async () => {
+        const roomInfo = await getRoomInfo(page);
+        return roomInfo.users.map((user) => user.username).sort();
+    }).toEqual(sortedExpectedUsernames);
 }
 
 export async function addPlaylistItem(page: Page, item: PlaylistItemInput): Promise<void> {
