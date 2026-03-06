@@ -175,6 +175,7 @@ export async function getRoomInfo(page: Page): Promise<RoomInfo> {
 }
 
 export async function expectRoomUsers(page: Page, expectedUsernames: string[]): Promise<void> {
+    await page.reload();
     const sortedExpectedUsernames = [...expectedUsernames].sort();
 
     await expect.poll(async () => {
