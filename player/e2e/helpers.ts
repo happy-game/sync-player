@@ -56,6 +56,11 @@ export interface RoomInfo {
     users: RoomUserInfo[];
 }
 
+export interface SyncControlState {
+    enabled: boolean;
+    toggleLabel: string;
+}
+
 function createUniqueName(prefix: string): string {
     return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -86,6 +91,10 @@ function getPlayToggleButton(page: Page) {
 
 function getUserPanel(page: Page) {
     return page.locator('div.bg-white.rounded-lg.shadow-lg.p-4.w-80').filter({ hasText: '房间:' }).first();
+}
+
+function getCurrentUserControls(page: Page) {
+    return getUserPanel(page).locator('div.space-y-2 > div').first();
 }
 
 export async function waitForUi(page: Page, delayMs: number = DEFAULT_E2E_DELAY_MS): Promise<void> {
@@ -197,6 +206,43 @@ export async function expectRoomUsers(page: Page, expectedUsernames: string[]): 
     }).toEqual(sortedExpectedUsernames);
 }
 
+export async function getSyncControlState(page: Page): Promise<SyncControlState> {
+    const currentUserControls = getCurrentUserControls(page);
+    const toggleButton = currentUserControls.getByRole('button', { name: /禁用同步|启用同步/ });
+    await expect(toggleButton).toBeVisible();
+
+    const toggleLabel = (await toggleButton.textContent())?.trim() ?? '';
+    return {
+        enabled: toggleLabel === '禁用同步',
+        toggleLabel,
+    };
+}
+
+export async function toggleSync(page: Page): Promise<SyncControlState> {
+    const beforeState = await getSyncControlState(page);
+    const currentUserControls = getCurrentUserControls(page);
+    const toggleButton = currentUserControls.getByRole('button', { name: beforeState.toggleLabel });
+    await toggleButton.click();
+
+    const nextLabel = beforeState.enabled ? '启用同步' : '禁用同步';
+    await expect.poll(async () => (await getSyncControlState(page)).toggleLabel).toBe(nextLabel);
+    return getSyncControlState(page);
+}
+
+export async function requestSync(page: Page): Promise<void> {
+    const currentUserControls = getCurrentUserControls(page);
+    const requestButton = currentUserControls.getByRole('button', { name: '获取进度' });
+    await expect(requestButton).toBeVisible();
+    await requestButton.click();
+}
+
+export async function sendSync(page: Page): Promise<void> {
+    const currentUserControls = getCurrentUserControls(page);
+    const sendButton = currentUserControls.getByRole('button', { name: '发送进度' });
+    await expect(sendButton).toBeVisible();
+    await sendButton.click();
+}
+
 export async function addPlaylistItem(page: Page, item: PlaylistItemInput): Promise<void> {
     const addPlaylistCard = getAddPlaylistCard(page);
     await expect(addPlaylistCard).toBeVisible();
@@ -297,6 +343,27 @@ export async function expectCurrentPlaylistItem(page: Page, title: string): Prom
         const currentTitle = page.locator('input#title[disabled]').first();
         return (await currentTitle.inputValue()) || null;
     }).toBe(title);
+}
+
+export async function clickVideoSurface(page: Page): Promise<void> {
+    const videoElement = getVideoElement(page);
+    await expect(videoElement).toBeVisible();
+    await videoElement.click({ force: true, position: { x: 16, y: 16 } });
+}
+
+export async function waitForPlaybackTime(page: Page, minSeconds: number): Promise<void> {
+    await expect.poll(async () => (await getPlaybackState(page)).currentTime).toBeGreaterThan(minSeconds);
+}
+
+export async function expectPlaybackNear(page: Page, expectedSeconds: number, tolerance: number = 1.5): Promise<void> {
+    await expect.poll(async () => {
+        const currentTime = (await getPlaybackState(page)).currentTime;
+        return Math.abs(currentTime - expectedSeconds);
+    }).toBeLessThan(tolerance);
+}
+
+export async function expectSourceToContain(page: Page, sourceFragment: string): Promise<void> {
+    await expect.poll(async () => (await getPlaybackState(page)).source).toContain(sourceFragment);
 }
 
 export async function getPlaybackState(page: Page): Promise<PlaybackState> {

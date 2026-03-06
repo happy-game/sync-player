@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { addPlaylistItem, clearPlaylist, deletePlaylistItem, enterPlayerPage, expectCurrentPlaylistItem, expectPlaylistTitles, expectRoomUsers, getPlaybackState, getPlaylistEntries, getPlaylistItems, getRoomInfo, login, logout, movePlaylistItem, pause, play, playPlaylistItem, seekTo, setMuted, TEST_VIDEOS, waitForUi } from './helpers.js';
+import { addPlaylistItem, clearPlaylist, clickVideoSurface, deletePlaylistItem, enterPlayerPage, expectCurrentPlaylistItem, expectPlaybackNear, expectPlaylistTitles, expectRoomUsers, expectSourceToContain, getPlaybackState, getPlaylistEntries, getPlaylistItems, getRoomInfo, getSyncControlState, login, logout, movePlaylistItem, pause, play, playPlaylistItem, requestSync, seekTo, setMuted, TEST_VIDEOS, toggleSync, waitForUi } from './helpers.js';
 
 test.describe('E2E Helper Functions Verification', () => {
     test('enter player page', async ({ page }) => {
@@ -103,6 +103,66 @@ test.describe('E2E Helper Functions Verification', () => {
 
         await clearPlaylist(page);
         await expect.poll(async () => getPlaylistItems(page)).toEqual([]);
+    });
+
+    test('sync helpers', async ({ browser }) => {
+        const firstContext = await browser.newContext();
+        const secondContext = await browser.newContext();
+        const firstPage = await firstContext.newPage();
+        const secondPage = await secondContext.newPage();
+
+        try {
+            const syncItem = TEST_VIDEOS[0];
+            const firstLogin = await login(firstPage);
+            await login(secondPage, { roomName: firstLogin.roomName });
+
+            await addPlaylistItem(firstPage, syncItem);
+            await playPlaylistItem(firstPage, syncItem.title);
+
+            await expectSourceToContain(firstPage, syncItem.url);
+            await expectSourceToContain(secondPage, syncItem.url);
+            await setMuted(firstPage, true);
+            await setMuted(secondPage, true);
+
+            const initialSyncState = await getSyncControlState(secondPage);
+            expect(initialSyncState.enabled).toBe(true);
+
+            await toggleSync(secondPage);
+            expect((await getSyncControlState(secondPage)).enabled).toBe(false);
+
+            await toggleSync(secondPage);
+            expect((await getSyncControlState(secondPage)).enabled).toBe(true);
+
+            await seekTo(firstPage, 10);
+            let firstPlaybackState = await getPlaybackState(firstPage);
+            let secondPlaybackState = await getPlaybackState(secondPage);
+            expect(firstPlaybackState.currentTime).toBeGreaterThan(secondPlaybackState.currentTime);
+            
+            await toggleSync(secondPage);
+            await seekTo(secondPage, 2);
+            await requestSync(secondPage);
+            await expect.poll(async () => (await getPlaybackState(secondPage)).currentTime < 5).toBe(true);
+
+            await toggleSync(secondPage);
+            await requestSync(secondPage);
+            await expect.poll(async () => {
+                const firstPlaybackState = await getPlaybackState(firstPage);
+                const secondPlaybackState = await getPlaybackState(secondPage);
+                return Math.abs(firstPlaybackState.currentTime - secondPlaybackState.currentTime);
+            }).toBeLessThan(1.5);
+
+            firstPlaybackState = await getPlaybackState(firstPage);
+            if (firstPlaybackState.paused) {
+                await clickVideoSurface(firstPage);
+                await expect.poll(async () => (await getPlaybackState(firstPage)).paused).toBe(false);
+            }
+
+            await clickVideoSurface(firstPage);
+            await expect.poll(async () => (await getPlaybackState(secondPage)).paused).toBe(true);
+        } finally {
+            await firstContext.close();
+            await secondContext.close();
+        }
     });
 
     test.skip('playback helpers', async ({ page }) => {
