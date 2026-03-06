@@ -35,6 +35,15 @@ export interface PlaybackState {
     readyState: number;
 }
 
+export interface PlaylistEntryInfo {
+    title: string;
+    isPlaying: boolean;
+    canPlay: boolean;
+    canMoveTop: boolean;
+    canMoveUp: boolean;
+    canMoveDown: boolean;
+}
+
 export interface RoomUserInfo {
     username: string;
     online: boolean;
@@ -57,6 +66,10 @@ function getAddPlaylistCard(page: Page) {
 
 function getPlaylistContainer(page: Page) {
     return page.locator('div.playlist-container').first();
+}
+
+function getPlaylistItem(page: Page, title: string) {
+    return getPlaylistContainer(page).locator('li').filter({ hasText: title }).first();
 }
 
 function getVideoPlayer(page: Page) {
@@ -202,16 +215,88 @@ export async function getPlaylistItems(page: Page): Promise<string[]> {
     await expect(playlistContainer.getByRole('heading', { name: '播放列表' })).toBeVisible();
 
     const itemTitles = playlistContainer.locator('li span.flex-1.font-medium');
-    return itemTitles.allTextContents();
+    return (await itemTitles.allTextContents()).map((title) => title.trim());
+}
+
+export async function expectPlaylistTitles(page: Page, expectedTitles: string[]): Promise<void> {
+    await expect.poll(async () => getPlaylistItems(page)).toEqual(expectedTitles);
+}
+
+export async function getPlaylistEntries(page: Page): Promise<PlaylistEntryInfo[]> {
+    const playlistContainer = getPlaylistContainer(page);
+    await expect(playlistContainer.getByRole('heading', { name: '播放列表' })).toBeVisible();
+
+    const items = playlistContainer.locator('li');
+    const itemCount = await items.count();
+    const entries: PlaylistEntryInfo[] = [];
+
+    for (let index = 0; index < itemCount; index += 1) {
+        const item = items.nth(index);
+        const title = (await item.locator('span.flex-1.font-medium').textContent())?.trim();
+
+        if (!title) {
+            continue;
+        }
+
+        const className = await item.getAttribute('class');
+        entries.push({
+            title,
+            isPlaying: className?.includes('bg-green-50') ?? false,
+            canPlay: await item.getByRole('button', { name: '播放' }).isEnabled(),
+            canMoveTop: await item.getByRole('button', { name: '置顶' }).isEnabled(),
+            canMoveUp: await item.getByRole('button', { name: '上移' }).isEnabled(),
+            canMoveDown: await item.getByRole('button', { name: '下移' }).isEnabled(),
+        });
+    }
+
+    return entries;
 }
 
 export async function deletePlaylistItem(page: Page, title: string): Promise<void> {
-    const playlistContainer = getPlaylistContainer(page);
-    const playlistItem = playlistContainer.locator('li').filter({ hasText: title }).first();
+    const playlistItem = getPlaylistItem(page, title);
 
     await expect(playlistItem).toBeVisible();
     await playlistItem.getByRole('button', { name: '删除' }).click();
     await expect(playlistItem).toBeHidden();
+}
+
+export async function movePlaylistItem(page: Page, title: string, direction: 'top' | 'up' | 'down'): Promise<void> {
+    const playlistItem = getPlaylistItem(page, title);
+    const buttonName = direction === 'top' ? '置顶' : direction === 'up' ? '上移' : '下移';
+
+    await expect(playlistItem).toBeVisible();
+    await playlistItem.getByRole('button', { name: buttonName }).click();
+}
+
+export async function clearPlaylist(page: Page): Promise<void> {
+    const playlistContainer = getPlaylistContainer(page);
+    const clearButton = playlistContainer.getByRole('button', { name: '清空播放列表' });
+
+    await expect(clearButton).toBeVisible();
+    await clearButton.click();
+    await expect.poll(async () => getPlaylistItems(page)).toEqual([]);
+    await expect(clearButton).toBeHidden();
+}
+
+export async function playPlaylistItem(page: Page, title: string): Promise<void> {
+    const playlistItem = getPlaylistItem(page, title);
+
+    await expect(playlistItem).toBeVisible();
+    await playlistItem.getByRole('button', { name: '播放' }).click();
+    await expectCurrentPlaylistItem(page, title);
+}
+
+export async function expectCurrentPlaylistItem(page: Page, title: string): Promise<void> {
+    await expect.poll(async () => {
+        const entries = await getPlaylistEntries(page);
+        const playingEntry = entries.find((entry) => entry.isPlaying);
+        return playingEntry?.title ?? null;
+    }).toBe(title);
+
+    await expect.poll(async () => {
+        const currentTitle = page.locator('input#title[disabled]').first();
+        return (await currentTitle.inputValue()) || null;
+    }).toBe(title);
 }
 
 export async function getPlaybackState(page: Page): Promise<PlaybackState> {

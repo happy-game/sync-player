@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { addPlaylistItem, deletePlaylistItem, enterPlayerPage, expectRoomUsers, getPlaybackState, getPlaylistItems, getRoomInfo, login, logout, pause, play, seekTo, setMuted, TEST_VIDEOS, waitForUi } from './helpers.js';
+import { addPlaylistItem, clearPlaylist, deletePlaylistItem, enterPlayerPage, expectCurrentPlaylistItem, expectPlaylistTitles, expectRoomUsers, getPlaybackState, getPlaylistEntries, getPlaylistItems, getRoomInfo, login, logout, movePlaylistItem, pause, play, playPlaylistItem, seekTo, setMuted, TEST_VIDEOS, waitForUi } from './helpers.js';
 
 test.describe('E2E Helper Functions Verification', () => {
     test('enter player page', async ({ page }) => {
@@ -79,7 +79,33 @@ test.describe('E2E Helper Functions Verification', () => {
         await expect.poll(async () => getPlaylistItems(page)).toEqual([secondItem.title]);
     });
 
-    test('playback helpers', async ({ page }) => {
+    test('playlist advanced helpers', async ({ page }) => {
+        expect(TEST_VIDEOS.length).toBeGreaterThanOrEqual(3);
+
+        const [firstItem, secondItem, thirdItem] = TEST_VIDEOS;
+
+        await login(page);
+
+        await addPlaylistItem(page, firstItem);
+        await addPlaylistItem(page, secondItem);
+        await addPlaylistItem(page, thirdItem);
+        await expectPlaylistTitles(page, [firstItem.title, secondItem.title, thirdItem.title]);
+
+        const initialEntries = await getPlaylistEntries(page);
+        expect(initialEntries[0]?.canMoveTop).toBe(false);
+        expect(initialEntries[0]?.canMoveUp).toBe(false);
+        expect(initialEntries[2]?.canMoveDown).toBe(false);
+        await movePlaylistItem(page, thirdItem.title, 'top');
+        await expectPlaylistTitles(page, [thirdItem.title, secondItem.title, firstItem.title]);
+
+        await playPlaylistItem(page, firstItem.title);
+        await expectCurrentPlaylistItem(page, firstItem.title);
+
+        await clearPlaylist(page);
+        await expect.poll(async () => getPlaylistItems(page)).toEqual([]);
+    });
+
+    test.skip('playback helpers', async ({ page }) => {
         expect(TEST_VIDEOS.length).toBeGreaterThan(0);
 
         const playbackItem = TEST_VIDEOS.find((video) => video.duration <= 60) ?? TEST_VIDEOS[0];
