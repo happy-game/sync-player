@@ -150,8 +150,7 @@ test.describe('E2E Helper Functions Verification', () => {
                 return Math.abs(firstPlaybackState.currentTime - secondPlaybackState.currentTime);
             }).toBeLessThan(1.5);
 
-            const firstPlaybackState = await getPlaybackState(firstPage);
-            if (firstPlaybackState.paused) {
+            if ((await getPlaybackState(firstPage)).paused) {
                 await clickVideoSurface(firstPage);
                 await expect.poll(async () => (await getPlaybackState(firstPage)).paused).toBe(false);
             }
