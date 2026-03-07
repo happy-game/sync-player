@@ -2,3 +2,4 @@
 log/
 server/data/
 docs/gifs/_tmp_*
+docs/gifs/*.webm
