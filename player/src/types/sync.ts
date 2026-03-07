@@ -6,12 +6,14 @@ export interface SyncDataPayload {
   timestamp: number;  // 时间戳
   paused: boolean;    // 是否暂停
   videoId: number;    // 视频ID
+  version: number;    // 服务端状态版本
 }
 
 // 暂停状态 Payload
 export interface PausePayload {
   paused: boolean;
   timestamp: number;
+  version: number;
 }
 
 // 用户列表 Payload

@@ -28,12 +28,14 @@ type SyncDataPayload struct {
 	Timestamp int64   `json:"timestamp"`
 	Paused    bool    `json:"paused"`
 	VideoID   uint    `json:"videoId"`
+	Version   uint64  `json:"version"`
 }
 
 // PausePayload 暂停状态
 type PausePayload struct {
-	Paused    bool  `json:"paused"`
-	Timestamp int64 `json:"timestamp"`
+	Paused    bool   `json:"paused"`
+	Timestamp int64  `json:"timestamp"`
+	Version   uint64 `json:"version"`
 }
 
 // UserListPayload 用户列表

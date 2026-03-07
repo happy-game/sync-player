@@ -16,7 +16,7 @@ import (
 // PlaylistAdd adds an item to the playlist
 func PlaylistAdd(c *gin.Context) {
 	var req struct {
-		Title   string                        `json:"title" binding:"required"`
+		Title   string                      `json:"title" binding:"required"`
 		Sources []database.VideoSourceInput `json:"sources" binding:"required,min=1,dive"`
 	}
 
@@ -225,17 +225,19 @@ func PlaylistSwitch(c *gin.Context) {
 		return
 	}
 
-	// Update or create room play status
-	_, err = database.GetRoomPlayStatus(userInfo.RoomID)
-	if err != nil {
-		database.CreateRoomPlayStatus(userInfo.RoomID, false, 0, time.Now().UnixMilli(), req.PlaylistItemID)
-	} else {
-		database.UpdateRoomPlayStatus(userInfo.RoomID, map[string]any{
-			"paused":    false,
-			"time":      0.0,
-			"timestamp": time.Now().UnixMilli(),
-			"video_id":  req.PlaylistItemID,
-		})
+	// Advance room playback version when the active video changes.
+	paused := false
+	playTime := 0.0
+	timestamp := time.Now().UnixMilli()
+	if _, err = database.ApplyRoomPlayStatusUpdate(userInfo.RoomID, nil, database.RoomPlayStatusUpdate{
+		Paused:    &paused,
+		Time:      &playTime,
+		Timestamp: &timestamp,
+		VideoID:   &req.PlaylistItemID,
+	}); err != nil {
+		config.Logger.Errorf("Failed to update room play status: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
 	}
 
 	// Always broadcast playlist update to sync all clients

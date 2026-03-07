@@ -14,6 +14,7 @@ export const usePlayerStore = defineStore('player', () => {
   const syncState = ref<SyncState>(SyncState.ENABLED)
   const syncThreshold = ref(1)  // 同步阈值（秒）
   const suppressSeekCount = ref(0) // Seek 抑制计数器
+  const lastSyncedVersion = ref(0)
 
   // 计算属性
   const isSyncEnabled = computed(() => syncState.value === SyncState.ENABLED)
@@ -71,9 +72,20 @@ export const usePlayerStore = defineStore('player', () => {
     suppressSeekCount.value = 0
   }
 
+  function setLastSyncedVersion(version: number) {
+    lastSyncedVersion.value = version
+    logger.debug('Last synced version updated:', version)
+  }
+
+  function resetLastSyncedVersion() {
+    lastSyncedVersion.value = 0
+    logger.debug('Last synced version reset')
+  }
+
   // 清理所有资源（组件卸载时调用）
   function cleanup() {
     suppressSeekCount.value = 0
+    lastSyncedVersion.value = 0
     logger.debug('PlayerStore cleaned up')
   }
 
@@ -82,6 +94,7 @@ export const usePlayerStore = defineStore('player', () => {
     currentSource,
     syncState,
     syncThreshold,
+    lastSyncedVersion,
 
     // 计算属性
     isSyncEnabled,
@@ -94,6 +107,8 @@ export const usePlayerStore = defineStore('player', () => {
     suppressNextSeek,
     consumeSuppressedSeek,
     clearSuppressedSeeks,
+    setLastSyncedVersion,
+    resetLastSyncedVersion,
     cleanup
   }
 })

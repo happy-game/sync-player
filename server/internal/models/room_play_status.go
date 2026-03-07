@@ -12,6 +12,7 @@ type RoomPlayStatus struct {
 	Time      float64        `gorm:"default:0" json:"time"`
 	Timestamp int64          `gorm:"default:0" json:"timestamp"`
 	VideoID   uint           `gorm:"default:0" json:"videoId"`
+	Version   uint64         `gorm:"not null;default:0" json:"version"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
 	// Associations
