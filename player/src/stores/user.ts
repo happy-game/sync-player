@@ -4,6 +4,8 @@ import request, { updateAxiosBaseUrl } from '@/utils/axios';
 import logger from '@/utils/logger';
 import { syncManager } from '@/utils/sync/syncManager';
 import { env } from '../config/env';
+import { CookieManager, COOKIE_NAMES, type UrlConfigCookie, type UserInfoCookie } from '@/utils/cookies';
+import { SessionManager, type Session } from '@/utils/storage';
 
 export interface UserListItem {
   id: number;
@@ -33,26 +35,19 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
+  // 获取 API base URL
+  function getBaseUrl(): string {
+    const urlConfig = CookieManager.getJSON<UrlConfigCookie>(COOKIE_NAMES.URL_CONFIG);
+    if (urlConfig?.apiBaseUrl) {
+      logger.info('Using API base URL from cookie:', urlConfig.apiBaseUrl);
+      return urlConfig.apiBaseUrl;
+    }
+    return env.API_BASE_URL;
+  }
+
   async function connectSyncManager() {
     const response = await request.get('sync/protocol');
-
-    const urlConfig = document.cookie
-      .split('; ')
-      .find(row => row.startsWith('urlConfig='));
-  
-    let baseURL = env.API_BASE_URL;
-  
-    if (urlConfig) {
-      try {
-        const config = JSON.parse(decodeURIComponent(urlConfig.split('=')[1]));
-        if (config.apiBaseUrl) {
-          baseURL = config.apiBaseUrl;
-          logger.info('Using API base URL from cookie:', baseURL);
-        }
-      } catch (error) {
-        logger.error('Failed to parse URL config from cookie:', error);
-      }
-    }
+    const baseURL = getBaseUrl();
 
     if (response.data.protocol === 'websocket') {
       const wsUrl = baseURL.replace('http', 'ws').replace('/api', '/ws');
@@ -68,80 +63,127 @@ export const useUserStore = defineStore('user', () => {
     fetchOnlineUsers();
   }
 
+  // 用户登录
+  async function loginUser(newUsername: string): Promise<number> {
+    const response = await request.post('user/login', { username: newUsername });
+    return response.data.id;
+  }
+
+  // 创建或加入房间
+  async function createOrJoinRoom(newUserId: number, newRoomName: string): Promise<{ roomId: number; token: string }> {
+    const roomResponse = await request.post('room/create', { name: newRoomName });
+    const newRoomId = roomResponse.data.id;
+
+    const joinResponse = await request.post('room/join', {
+      userId: newUserId,
+      roomId: newRoomId,
+    });
+
+    return { roomId: newRoomId, token: joinResponse.data.token };
+  }
+
+  // 保存会话到存储
+  function saveSession(newUserId: number, newUsername: string, newRoomId: number, newRoomName: string, token: string) {
+    const session: Session = {
+      user: { id: newUserId, username: newUsername },
+      room: { id: newRoomId, name: newRoomName },
+      token,
+      timestamp: Date.now(),
+    };
+    SessionManager.save(session);
+
+    // 同时保存到 Cookie，保持向后兼容
+    CookieManager.setJSON<UserInfoCookie>(COOKIE_NAMES.USER_INFO, {
+      userId: newUserId,
+      roomId: newRoomId,
+      username: newUsername,
+      roomName: newRoomName,
+    });
+  }
+
+  // 登录入口
   async function login(newUsername: string, newRoomName: string) {
-    let queryUserId: number | null = null;
-    let queryRoomId: number | null = null;
-    
     try {
-      const queryUserResponse = await request.post('user/login', {
-        username: newUsername,
-      });
-      queryUserId = queryUserResponse.data.id;
+      const newUserId = await loginUser(newUsername);
+      const { roomId: newRoomId, token } = await createOrJoinRoom(newUserId, newRoomName);
 
-      const queryRoomResponse = await request.post('room/create', {
-        name: newRoomName,
-      });
-      queryRoomId = queryRoomResponse.data.id;
+      // 保存 token
+      authToken.value = token;
+      localStorage.setItem('authToken', token);
 
-      const joinRoomResponse = await request.post('room/join', {
-        userId: queryUserId,
-        roomId: queryRoomId,
-      });
+      // 保存会话
+      saveSession(newUserId, newUsername, newRoomId, newRoomName, token);
 
-      // Save JWT token
-      if (joinRoomResponse.data.token) {
-        authToken.value = joinRoomResponse.data.token;
-        localStorage.setItem('authToken', joinRoomResponse.data.token);
-      }
-
+      // 更新 Pinia 状态
       username.value = newUsername;
       roomName.value = newRoomName;
-      userId.value = queryUserId;
-      roomId.value = queryRoomId;
-      connectSyncManager();
+      userId.value = newUserId;
+      roomId.value = newRoomId;
 
+      connectSyncManager();
     } catch (error) {
       logger.error('登录失败:', error);
       throw error;
     }
-
-    // Also save to cookie for backward compatibility
-    document.cookie = `userInfo=${JSON.stringify({
-      username: newUsername,
-      roomName: newRoomName,
-      userId: queryUserId,
-      roomId: queryRoomId,
-    })}; path=/`;
   }
 
-  function loadFromCookie() {
-    // Try to load token from localStorage first
+  // 从存储加载会话
+  function loadFromSession(): boolean {
+    // 优先从 SessionManager 加载
+    const session = SessionManager.load();
+    if (session) {
+      authToken.value = session.token;
+      username.value = session.user.username;
+      roomName.value = session.room.name;
+      userId.value = session.user.id;
+      roomId.value = session.room.id;
+
+      if (userId.value && roomId.value) {
+        updateAxiosBaseUrl();
+        connectSyncManager();
+      }
+      return true;
+    }
+
+    // 向后兼容：从 Cookie 加载
+    return loadFromCookie();
+  }
+
+  // 向后兼容：从 Cookie 加载
+  function loadFromCookie(): boolean {
     const savedToken = localStorage.getItem('authToken');
     if (savedToken) {
       authToken.value = savedToken;
     }
 
-    const userInfo = document.cookie
-      .split('; ')
-      .find(row => row.startsWith('userInfo='));
-
+    const userInfo = CookieManager.getJSON<UserInfoCookie>(COOKIE_NAMES.USER_INFO);
     if (userInfo) {
-      try {
-        const data = JSON.parse(decodeURIComponent(userInfo.split('=')[1]));
-        username.value = data.username;
-        roomName.value = data.roomName;
-        userId.value = data.userId;
-        roomId.value = data.roomId;
-        if (userId.value && roomId.value) {
-          updateAxiosBaseUrl();
-          connectSyncManager();
-        }
-        return true;
-      } catch (error) {
-        logger.error('Failed to parse user info from cookie:', error);
+      username.value = userInfo.username;
+      roomName.value = userInfo.roomName;
+      userId.value = userInfo.userId;
+      roomId.value = userInfo.roomId;
+
+      if (userId.value && roomId.value) {
+        updateAxiosBaseUrl();
+        connectSyncManager();
       }
+      return true;
     }
     return false;
+  }
+
+  // 登出
+  function logout() {
+    SessionManager.clear();
+    CookieManager.clear();
+    localStorage.removeItem('authToken');
+
+    username.value = '';
+    roomName.value = '';
+    userId.value = null;
+    roomId.value = null;
+    authToken.value = null;
+    userList.value = [];
   }
 
   return {
@@ -152,9 +194,11 @@ export const useUserStore = defineStore('user', () => {
     userList,
     authToken,
     login,
+    loadFromSession,
     loadFromCookie,
-    connectSyncManager: connectSyncManager,
+    logout,
+    connectSyncManager,
     updateUserList,
     fetchOnlineUsers,
   };
-}); 
+});

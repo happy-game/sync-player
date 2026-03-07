@@ -7,6 +7,7 @@ import AddPlaylist from './components/AddPlaylist.vue';
 import Users from './components/Users.vue';
 import Playing from './components/Playing.vue';
 import { useUserStore } from './stores/user';
+import { usePlaylistStore } from './stores/playlist';
 import logger from './utils/logger';
 import IcpBeian from './components/IcpBeian.vue';
 import PoliceBeian from './components/PoliceBeian.vue';
@@ -14,6 +15,14 @@ import { env } from './config/env';
 
 const showLoginModal = ref(true);
 const userStore = useUserStore();
+const playlistStore = usePlaylistStore();
+
+// Expose stores to window for debugging
+if (import.meta.env.DEV) {
+  (window as any).userStore = userStore;
+  (window as any).playlistStore = playlistStore;
+}
+
 const videoPlayerRef = ref<InstanceType<typeof VideoPlayer> | null>(null);
 
 onMounted(() => {

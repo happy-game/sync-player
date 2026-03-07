@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 	"sync-player-server/internal/config"
 	"sync-player-server/internal/database"
@@ -14,9 +15,10 @@ import (
 // SyncUpdateTime updates the playback time
 func SyncUpdateTime(c *gin.Context) {
 	var req struct {
-		Time      float64 `json:"time" binding:"required"`
-		Timestamp int64   `json:"timestamp" binding:"required"`
-		VideoID   uint    `json:"videoId" binding:"required"`
+		Time        float64 `json:"time" binding:"required"`
+		Timestamp   int64   `json:"timestamp" binding:"required"`
+		VideoID     uint    `json:"videoId" binding:"required"`
+		BaseVersion uint64  `json:"baseVersion" binding:"required"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -33,16 +35,26 @@ func SyncUpdateTime(c *gin.Context) {
 	config.Logger.Infof("sync updateTime: roomId=%d, userId=%d, time=%f, timestamp=%d, videoId=%d",
 		userInfo.RoomID, userInfo.UserID, req.Time, req.Timestamp, req.VideoID)
 
-	_, err := database.GetRoomPlayStatus(userInfo.RoomID)
+	paused := false
+	playStatus, err := database.ApplyRoomPlayStatusUpdate(userInfo.RoomID, &req.BaseVersion, database.RoomPlayStatusUpdate{
+		Paused:    &paused,
+		Time:      &req.Time,
+		Timestamp: &req.Timestamp,
+		VideoID:   &req.VideoID,
+	})
 	if err != nil {
-		database.CreateRoomPlayStatus(userInfo.RoomID, false, req.Time, req.Timestamp, req.VideoID)
-	} else {
-		database.UpdateRoomPlayStatus(userInfo.RoomID, map[string]interface{}{
-			"paused":    false,
-			"time":      req.Time,
-			"timestamp": req.Timestamp,
-			"video_id":  req.VideoID,
-		})
+		if errors.Is(err, database.ErrRoomPlayStatusVersionConflict) {
+			c.JSON(http.StatusConflict, gin.H{
+				"error":   "Sync version conflict",
+				"code":    "SYNC_VERSION_CONFLICT",
+				"current": playStatus,
+			})
+			return
+		}
+
+		config.Logger.Errorf("Failed to update room play status: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
 	}
 
 	syncManager := sync.GetSyncManager()
@@ -56,11 +68,12 @@ func SyncUpdateTime(c *gin.Context) {
 				"time":      req.Time,
 				"timestamp": req.Timestamp,
 				"videoId":   req.VideoID,
+				"version":   playStatus.Version,
 			},
 		}, []uint{userInfo.UserID})
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Play status updated"})
+	c.JSON(http.StatusOK, playStatus)
 }
 
 // SyncQuery queries the playback status
@@ -92,8 +105,9 @@ func SyncQuery(c *gin.Context) {
 // SyncUpdatePause updates the pause status
 func SyncUpdatePause(c *gin.Context) {
 	var req struct {
-		Paused    bool  `json:"paused"`
-		Timestamp int64 `json:"timestamp" binding:"required"`
+		Paused      bool   `json:"paused"`
+		Timestamp   int64  `json:"timestamp" binding:"required"`
+		BaseVersion uint64 `json:"baseVersion" binding:"required"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -110,14 +124,23 @@ func SyncUpdatePause(c *gin.Context) {
 	config.Logger.Infof("sync updatePause: roomId=%d, userId=%d, paused=%t, timestamp=%d",
 		userInfo.RoomID, userInfo.UserID, req.Paused, req.Timestamp)
 
-	_, err := database.GetRoomPlayStatus(userInfo.RoomID)
+	playStatus, err := database.ApplyRoomPlayStatusUpdate(userInfo.RoomID, &req.BaseVersion, database.RoomPlayStatusUpdate{
+		Paused:    &req.Paused,
+		Timestamp: &req.Timestamp,
+	})
 	if err != nil {
-		database.CreateRoomPlayStatus(userInfo.RoomID, req.Paused, 0, req.Timestamp, 0)
-	} else {
-		database.UpdateRoomPlayStatus(userInfo.RoomID, map[string]interface{}{
-			"paused":    req.Paused,
-			"timestamp": req.Timestamp,
-		})
+		if errors.Is(err, database.ErrRoomPlayStatusVersionConflict) {
+			c.JSON(http.StatusConflict, gin.H{
+				"error":   "Sync version conflict",
+				"code":    "SYNC_VERSION_CONFLICT",
+				"current": playStatus,
+			})
+			return
+		}
+
+		config.Logger.Errorf("Failed to update room pause status: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
 	}
 
 	syncManager := sync.GetSyncManager()
@@ -129,11 +152,12 @@ func SyncUpdatePause(c *gin.Context) {
 				"userId":    userInfo.UserID,
 				"paused":    req.Paused,
 				"timestamp": req.Timestamp,
+				"version":   playStatus.Version,
 			},
 		}, []uint{userInfo.UserID})
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Play status updated"})
+	c.JSON(http.StatusOK, playStatus)
 }
 
 // SyncProtocol returns the sync protocol

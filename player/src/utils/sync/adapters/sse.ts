@@ -1,5 +1,5 @@
 // use sse(Server-Sent Events) to implement the ISyncAdapter interface.
-import type { ISyncAdapter, ISyncMessage, SyncEventHandler } from '@/types/sync';
+import type { ISyncAdapter, SyncMessage, SyncEventHandler } from '@/types/sync';
 import logger from '@/utils/logger';
 
 export class SSEAdapter implements ISyncAdapter {
@@ -53,7 +53,7 @@ export class SSEAdapter implements ISyncAdapter {
     }
   }
 
-  send(message: ISyncMessage): void {
+  send(message: SyncMessage): void {
     // TODO: 实现send方法
     throw new Error('Method not implemented.');
   }

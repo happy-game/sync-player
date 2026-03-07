@@ -36,6 +36,7 @@
 import { ref } from 'vue';
 import { updateAxiosBaseUrl } from '@/utils/axios';
 import { useUserStore } from '@/stores/user';
+import { CookieManager, COOKIE_NAMES, type UrlConfigCookie } from '@/utils/cookies';
 
 const userStore = useUserStore();
 
@@ -50,10 +51,9 @@ const emit = defineEmits<{
 const newBaseUrl = ref('');
 
 const handleSubmit = () => {
-  // save to cookie
-  document.cookie = `urlConfig=${JSON.stringify({
+  CookieManager.setJSON<UrlConfigCookie>(COOKIE_NAMES.URL_CONFIG, {
     apiBaseUrl: newBaseUrl.value,
-  })}; path=/`;
+  });
   updateAxiosBaseUrl(newBaseUrl.value);
 
   userStore.connectSyncManager();

@@ -9,7 +9,7 @@ import tailwind from 'tailwindcss'
 export default defineConfig(({ mode }) => {
   // 加载环境变量
   const env = loadEnv(mode, process.cwd())
-  
+
   css: {
     postcss: {
       plugins: [
@@ -18,7 +18,7 @@ export default defineConfig(({ mode }) => {
       ]
     }
   }
-  
+
   return {
     plugins: [
       vue(),
@@ -33,7 +33,7 @@ export default defineConfig(({ mode }) => {
       port: 5173,
       proxy: {
         '/api': {
-          target: env.VITE_API_BASE_URL || 'http://localhost:3000',
+          target: (env.VITE_API_BASE_URL || 'http://localhost:3000').replace(/\/api\/?$/, ''),
           changeOrigin: true,
           secure: false
         },

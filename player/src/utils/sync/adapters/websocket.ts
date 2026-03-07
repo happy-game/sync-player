@@ -1,4 +1,4 @@
-import type { ISyncAdapter, ISyncMessage, SyncEventHandler } from '@/types/sync';
+import type { ISyncAdapter, SyncMessage, SyncEventHandler } from '@/types/sync';
 import logger from '@/utils/logger';
 
 export class WebSocketAdapter implements ISyncAdapter {
@@ -63,7 +63,7 @@ export class WebSocketAdapter implements ISyncAdapter {
     }
   }
 
-  send(message: ISyncMessage): void {
+  send(message: SyncMessage): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(message));
     } else {

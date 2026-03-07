@@ -145,12 +145,7 @@ function handleUpdateUsers(data: any) {
 }
 
 function handleLogout() {
-  // 清除所有cookies
-  document.cookie.split(';').forEach(cookie => {
-    document.cookie = cookie.replace(/^ +/, '').replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
-  });
-  
-  // 刷新页面
+  userStore.logout();
   window.location.reload();
 }
 </script>

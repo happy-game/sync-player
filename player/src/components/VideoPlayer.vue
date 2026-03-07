@@ -1,7 +1,8 @@
 <template>
-	<div class="w-full h-full">
+	<div class="w-full h-full" data-testid="video-player">
 		<video
 			id="videojs-player"
+			data-testid="video-player-element"
 			class="video-js vjs-big-play-centered w-full h-full"
 		>
 			<p class="vjs-no-js">
@@ -13,12 +14,13 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, watch, ref } from 'vue';
+import { onMounted, onUnmounted, watch } from 'vue';
+import axios from 'axios';
 import videojs from 'video.js';
 import type Player from 'video.js/dist/types/player';
 import 'video.js/dist/video-js.min.css'
 import { usePlaylistStore } from '@/stores/playlist';
-import { usePlayerStore } from '@/stores/player';
+import { usePlayerStore, SyncState } from '@/stores/player';
 import { useUserStore } from '@/stores/user';
 
 import logger from '@/utils/logger';
@@ -30,19 +32,14 @@ interface SyncData {
   timestamp: number;
   paused: boolean;
   videoId: number;
+  version: number;
 }
 
 let player: Player | null = null;
-let enable_sync = true;
-let please_enable_sync = false;
-const syncThreshold = 1;
 
 const playlistStore = usePlaylistStore();
 const playerStore = usePlayerStore();
 const userStore = useUserStore();
-
-// 添加一个ref来控制同步状态
-const syncEnabled = ref(true);
 
 function initPlayer() {
 	const options = {
@@ -56,7 +53,7 @@ function initPlayer() {
 			}
 		},
 		userActions: {
-			click: function(event: Event) {
+			click: async function(event: Event) {
 				logger.debug('Video clicked', event);
         // 反转播放/暂停状态
         if (player) { // FIXME: 更优雅的写法
@@ -71,35 +68,48 @@ function initPlayer() {
 
         const data = {
           paused,
-          timestamp
+          timestamp,
+          baseVersion: playerStore.lastSyncedVersion
         };
-        request.post('/sync/updatePause', data);
+        try {
+          const response = await request.post('/sync/updatePause', data);
+          const result = response.data as SyncData;
+          applySyncState(result);
+        } catch (error) {
+          if (await handleSyncConflict(error)) {
+            return;
+          }
+          logger.error('Error sending pause sync data', error);
+        }
 			}
 		}
 	};
 	player = videojs("videojs-player", options);
   
 	if (player) {
-    player.on('canplay', () => {
-      if (please_enable_sync) {
-        enable_sync = true;
-        please_enable_sync = false;
-      }
-    });
+    if (import.meta.env.DEV) {
+      console.log('Exposing player and videojs to window for debugging');
+      (window as any).player = player;
+      (window as any).videojs = videojs;
+    }
 	}
 
 	player?.on('seeked', sendSyncData);
-  player?.on('ended', () => {
-    if (userStore.roomId) {
-      playlistStore.switchVideo(userStore.roomId);
-    }
-  });
+  player?.on('ended', handleVideoEnded);
 }
 
 async function sendSyncData() {
-  if (!enable_sync || !syncEnabled.value) {
+  if (!playerStore.isSyncEnabled) {
+    logger.debug('Sync disabled, skipping sendSyncData');
     return;
   }
+  
+  // 检查是否是被抑制的 seek
+  if (playerStore.consumeSuppressedSeek()) {
+    logger.debug('Suppressed seek consumed, skipping sendSyncData');
+    return;
+  }
+
   const currentTime = player?.currentTime();
   const timestamp = Date.now();
   const paused = player?.paused();
@@ -109,48 +119,68 @@ async function sendSyncData() {
     time: currentTime,
     timestamp,
     paused,
-    videoId
+    videoId,
+    baseVersion: playerStore.lastSyncedVersion
   };
   try {
     const response = await request.post('/sync/updateTime', data);
-    const result = response.data;
+    const result = response.data as SyncData;
+    applySyncState(result);
     logger.info('Sync data sent', result);
   } catch (error) {
+    if (await handleSyncConflict(error)) {
+      return;
+    }
     logger.error('Error sending sync data', error);
   }
 }
 
+function applySyncState(data: SyncData) {
+  playerStore.setLastSyncedVersion(data.version);
+}
+
 async function updatePlayer(data: SyncData) {
-  if (!enable_sync || !syncEnabled.value) {  // 添加syncEnabled.value的检查
-    logger.info('Sync disabled');
+  if (!playerStore.isSyncEnabled) {
+    logger.debug('Sync disabled, skipping updatePlayer');
     return;
   }
-  enable_sync = false;
-  please_enable_sync = true;
-  setTimeout(() => {
-    enable_sync = true;
-    please_enable_sync = false;
-  }, 1000 * 10);  // 设置10s的等待时间， 超时后自动开启同步
+
+  applySyncState(data);
   const currentTime = player?.currentTime();
   if (currentTime === undefined) {  // fucking typescript
     return;
   }
+  
   const diff = Math.abs(currentTime - data.time);
-  if (diff > syncThreshold) {
-    logger.info('Updating player time', data.time);
+  const threshold = playerStore.syncThreshold;
+  
+  if (diff > threshold) {
+    logger.info(`Updating player time from ${currentTime} to ${data.time} (diff: ${diff}s)`);
+    
+
+
+    
+    // 抑制这次 seek 事件
+    playerStore.suppressNextSeek();
     player?.currentTime(data.time);
-    player?.play(); // FIXME: always play
     logger.info('Player time updated');
   }
   else {
     logger.info('Player time is already in sync', currentTime, data.time, diff);
   }
+
+  if (data.paused) {
+    player?.pause();
+  } else {
+    player?.play();
+  }
 }
 
-async function getSyncData() {
+async function getSyncData(): Promise<SyncData | null> {
   try {
     const response = await request.get(`/sync/query`);
-    const result = response.data;
+    const result = response.data as SyncData;
+    applySyncState(result);
     logger.info('Sync data received', result);
     return result;
   } catch (error) {
@@ -159,6 +189,94 @@ async function getSyncData() {
   }
 }
 
+async function handleSyncConflict(error: unknown): Promise<boolean> {
+  if (!axios.isAxiosError(error) || error.response?.status !== 409) {
+    return false;
+  }
+
+  logger.warn('Sync version conflict detected, pulling latest room state');
+  const current = error.response?.data?.current as SyncData | undefined;
+  if (current) {
+    applySyncState(current);
+    await updatePlayer(current);
+    return true;
+  }
+
+  const latest = await getSyncData();
+  if (latest) {
+    await updatePlayer(latest);
+  }
+  return true;
+}
+
+async function handleVideoEnded() {
+  logger.info('Video ended, switching to next video');
+  if (userStore.roomId) {
+    playlistStore.switchVideo(userStore.roomId);
+  }
+}
+
+async function handleUpdateTime(data: any) {
+  if (!playerStore.isSyncEnabled) {
+    logger.debug('Sync disabled, ignoring updateTime message');
+    return;
+  }
+  
+  logger.info('Received update time message', data);
+  const result = await getSyncData();
+  if (result) {
+    updatePlayer(result);
+  }
+}
+
+async function handleUpdatePause(data: any) {
+  if (!playerStore.isSyncEnabled) {
+    logger.debug('Sync disabled, ignoring updatePause message');
+    return;
+  }
+  
+  logger.info('Received update pause message', data);
+  const result = await getSyncData();
+  if (result) {
+    await updatePlayer(result);
+  }
+}
+
+async function handleSourceChange(newSource: string, options?: { preserveTime?: boolean; autoPlay?: boolean }) {
+  logger.info('Switching video source:', newSource);
+  
+  if (!player) {
+    logger.warn('Player not initialized');
+    return;
+  }
+  
+  const shouldPreserveTime = options?.preserveTime ?? false;
+  const currentTime = shouldPreserveTime ? (player.currentTime() ?? 0) : 0;
+  
+  // 如果明确指定了 autoPlay，使用指定值；否则继承当前播放状态
+  const shouldAutoPlay = options?.autoPlay ?? !player.paused();
+  
+  player.src({
+    src: newSource,
+    type: 'video/mp4'
+  });
+  
+  player.one('loadedmetadata', () => {
+    logger.debug('Video metadata loaded, restoring playback state');
+    
+    if (currentTime > 0) {
+      // 抑制恢复时间时的 seek 事件
+      playerStore.suppressNextSeek();
+      player?.currentTime(currentTime);
+    }
+    
+    if (shouldAutoPlay) {
+      player?.play();
+    }
+  });
+}
+
+// 监听播放列表当前视频变化
 watch(() => playlistStore.currentVideoId, async (newVideoId) => {
   if (player && newVideoId && newVideoId !== -1) {
     logger.info('Current video changed:', newVideoId);
@@ -170,84 +288,45 @@ watch(() => playlistStore.currentVideoId, async (newVideoId) => {
     }
 
     const videoSrc = currentVideo.videoSources[0].url;
-    player?.src({
-      src: videoSrc,
-      type: 'video/mp4'
-    });
+    
+    // 切换到新视频，从头开始播放
+    handleSourceChange(videoSrc, { preserveTime: false, autoPlay: true });
 
+    // 获取同步数据并更新播放器
     const syncData = await getSyncData();
     if (syncData) {
       updatePlayer(syncData);
     }
-    player?.play();
   }
 });
 
+// 监听视频源变化（用于手动切换源，保留播放时间）
 watch(() => playerStore.currentSource, (newSource) => {
   if (newSource && player) {
-    handleSourceChange(newSource)
+    handleSourceChange(newSource, { preserveTime: true });
   }
-})
+});
 
 onMounted(() => {
+	logger.info('VideoPlayer mounted, initializing...');
 	initPlayer();
   syncManager.subscribe('updateTime', handleUpdateTime);
   syncManager.subscribe('updatePause', handleUpdatePause);
 });
 
 onUnmounted(() => {
+  logger.info('VideoPlayer unmounting, cleaning up...');
+  
   syncManager.unsubscribe('updateTime', handleUpdateTime);
   syncManager.unsubscribe('updatePause', handleUpdatePause);
-});
-
-async function handleUpdateTime(data: any) {
-  logger.info('Received update time', data);
-  const result = await getSyncData();  // FIXME: 目标设备会大约快 2s, 检查时间计算逻辑
-  if (result) {
-    updatePlayer(result);
-  }
-}
-
-async function handleUpdatePause(data: any) {
-  logger.info('Received update pause', data);
-  const result = await getSyncData();
-  if (result) {
-    const paused = result.paused;
-    if (paused) {
-      player?.pause();
-    } else {
-      player?.play();
-    }
-  }
-}
-
-// 添加一个处理切换视频源的函数
-async function handleSourceChange(newSource: string) {
-  logger.info('切换视频源:', newSource)
+  
   if (player) {
-    // 关闭同步
-    enable_sync = false;
-    please_enable_sync = true;
-    setTimeout(() => {
-      enable_sync = true;
-      please_enable_sync = false;
-    }, 1000 * 10);  // 设置10s的等待时间， 超时后自动开启同步
-    const currentTime = player.currentTime()
-    const paused = player.paused()
-    
-    player.src({
-      src: newSource,
-      type: 'video/mp4'
-    })
-    
-    player.one('loadedmetadata', () => {
-      player?.currentTime(currentTime)
-      if (!paused) {
-        player?.play()
-      }
-    })
+    player.dispose();
+    player = null;
   }
-}
+  
+  playerStore.cleanup();
+});
 
 // 暴露方法给父组件
 defineExpose({
@@ -261,11 +340,10 @@ defineExpose({
     sendSyncData();
   },
   toggleSync: () => {
-    syncEnabled.value = !syncEnabled.value;
-    enable_sync = syncEnabled.value;
-    please_enable_sync = false;
-    logger.info(`同步已${syncEnabled.value ? '启用' : '禁用'}`);
+    playerStore.toggleSync();
+    logger.info(`Sync toggled: ${playerStore.isSyncEnabled ? 'enabled' : 'disabled'}`);
   },
-  getSyncState: () => syncEnabled.value
+  getSyncState: () => playerStore.isSyncEnabled,
+  getSyncStateEnum: () => playerStore.syncState
 });
 </script>
