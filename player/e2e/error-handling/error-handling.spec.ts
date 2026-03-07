@@ -154,10 +154,8 @@ test.describe('Error Handling & Edge Cases E2E', () => {
             if (await skipButton.isVisible()) {
                 await skipButton.click();
                 await expect(loginModal).toBeHidden();
-            } else {
-                // Skip button might not exist in all versions
-                expect(true).toBe(true);
             }
+            // If the skip button is not present, the test passes — we only verify it works when available
         } finally {
             await context.close();
         }

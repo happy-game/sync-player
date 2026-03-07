@@ -7,6 +7,7 @@ import {
     getPlaybackState,
     getPlaylistItems,
     login,
+    logout,
     playPlaylistItem,
     setMuted,
 } from '../helpers.js';
@@ -113,17 +114,8 @@ test.describe('Reconnection & Resilience E2E', () => {
             await addPlaylistItem(page, video);
             await expectPlaylistTitles(page, [video.title]);
 
-            // Logout
-            const userPanel = page.locator('div.bg-white.rounded-lg.shadow-lg.p-4.w-80').filter({ hasText: '房间:' }).first();
-            await expect(userPanel).toBeVisible();
-            const logoutButton = userPanel.locator('button').nth(1);
-            await Promise.all([
-                page.waitForLoadState('domcontentloaded'),
-                logoutButton.click(),
-            ]);
-
-            const loginModal = page.locator('div:has(> h2:text("登录"))').first();
-            await expect(loginModal.getByRole('heading', { name: '登录' })).toBeVisible();
+            // Logout using the helper
+            await logout(page);
 
             // Re-login to a different room
             const secondLogin = await login(page);
