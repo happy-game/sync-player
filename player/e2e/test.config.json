@@ -2,34 +2,34 @@
     "playerBaseUrl": "http://localhost:5173",
     "testVideos": [
         {
-            "url": "http://vjs.zencdn.net/v/oceans.mp4",
-            "title": "Oceans - Test Video 1",
-            "duration": 46,
-            "description": "Ocean video from Video.js CDN"
+            "url": "http://localhost:5173/test-videos/test-video-1.mp4",
+            "title": "Test Video 1",
+            "duration": 30,
+            "description": "Local test video (blue, 30s). Generate with: bash e2e/generate-test-videos.sh"
         },
         {
-            "url": "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-            "title": "Big Buck Bunny",
-            "duration": 596,
-            "description": "Big Buck Bunny animation"
+            "url": "http://localhost:5173/test-videos/test-video-2.mp4",
+            "title": "Test Video 2",
+            "duration": 30,
+            "description": "Local test video (green, 30s). Generate with: bash e2e/generate-test-videos.sh"
         },
         {
-            "url": "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
-            "title": "Elephants Dream",
-            "duration": 653,
-            "description": "Elephants Dream animation"
+            "url": "http://localhost:5173/test-videos/test-video-3.mp4",
+            "title": "Test Video 3",
+            "duration": 30,
+            "description": "Local test video (purple, 30s). Generate with: bash e2e/generate-test-videos.sh"
         },
         {
-            "url": "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-            "title": "For Bigger Blazes",
-            "duration": 15,
-            "description": "Short test video for quick auto-switch testing"
+            "url": "http://localhost:5173/test-videos/short-video-1.mp4",
+            "title": "Short Video 1",
+            "duration": 10,
+            "description": "Short local test video (orange, 10s) for quick auto-switch testing"
         },
         {
-            "url": "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
-            "title": "For Bigger Escapes",
-            "duration": 15,
-            "description": "Short test video for quick auto-switch testing"
+            "url": "http://localhost:5173/test-videos/short-video-2.mp4",
+            "title": "Short Video 2",
+            "duration": 10,
+            "description": "Short local test video (red, 10s) for quick auto-switch testing"
         }
     ],
     "sync": {
