@@ -32,6 +32,9 @@ coverage
 test-results/
 playwright-report/
 
+# Generated test videos (regenerate with: bash e2e/generate-test-videos.sh)
+public/test-videos/
+
 # env files
 .env
 .env.local

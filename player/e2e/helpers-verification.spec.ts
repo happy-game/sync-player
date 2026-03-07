@@ -134,9 +134,8 @@ test.describe('E2E Helper Functions Verification', () => {
             expect((await getSyncControlState(secondPage)).enabled).toBe(true);
 
             await seekTo(firstPage, 10);
-            let firstPlaybackState = await getPlaybackState(firstPage);
-            let secondPlaybackState = await getPlaybackState(secondPage);
-            expect(firstPlaybackState.currentTime).toBeGreaterThan(secondPlaybackState.currentTime);
+            // With sync enabled, both users should be near 10s
+            await expectPlaybackNear(secondPage, 10, 2);
             
             await toggleSync(secondPage);
             await seekTo(secondPage, 2);
@@ -151,8 +150,7 @@ test.describe('E2E Helper Functions Verification', () => {
                 return Math.abs(firstPlaybackState.currentTime - secondPlaybackState.currentTime);
             }).toBeLessThan(1.5);
 
-            firstPlaybackState = await getPlaybackState(firstPage);
-            if (firstPlaybackState.paused) {
+            if ((await getPlaybackState(firstPage)).paused) {
                 await clickVideoSurface(firstPage);
                 await expect.poll(async () => (await getPlaybackState(firstPage)).paused).toBe(false);
             }
@@ -165,7 +163,7 @@ test.describe('E2E Helper Functions Verification', () => {
         }
     });
 
-    test.skip('playback helpers', async ({ page }) => {
+    test('playback helpers', async ({ page }) => {
         expect(TEST_VIDEOS.length).toBeGreaterThan(0);
 
         const playbackItem = TEST_VIDEOS.find((video) => video.duration <= 60) ?? TEST_VIDEOS[0];
