@@ -114,6 +114,15 @@ while [ $attempt -lt $max_attempts ]; do
     sleep 1
 done
 
+echo -e "\n${GREEN}🎬 Generating test videos...${NC}"
+GENERATE_SCRIPT="player/e2e/generate-test-videos.sh"
+if [ -f "$GENERATE_SCRIPT" ]; then
+    bash "$GENERATE_SCRIPT"
+else
+    echo -e "${YELLOW}⚠️  Test video generation script not found: $GENERATE_SCRIPT${NC}"
+    echo "Tests that require video playback may fail."
+fi
+
 echo -e "\n${GREEN}🎯 Running E2E tests...${NC}\n"
 
 # Run the tests
